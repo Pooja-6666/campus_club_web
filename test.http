@@ -1,0 +1,7 @@
+POST http://127.0.0.1:3000/clubs
+Content-Type: application/json
+
+{
+  "club_name": "Coding Club",
+  "description": "Tech events"
+}

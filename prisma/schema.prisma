@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  student_id Int @id @default(autoincrement())
+  name       String
+  email      String @unique
+  password   String
+
+  bookmarks  Bookmark[]
+}
+
+model Organizer {
+  org_id   Int @id @default(autoincrement())
+  name     String
+  email    String @unique
+  password String
+
+  club_id Int
+  club    Club @relation(fields: [club_id], references: [club_id])
+
+  events  Event[]
+}
+
+model Faculty {
+  faculty_id Int @id @default(autoincrement())
+  name       String
+  email      String @unique
+  password   String
+
+  club_id Int
+  club    Club @relation(fields: [club_id], references: [club_id])
+}
+
+model Admin {
+  admin_id Int @id @default(autoincrement())
+  name     String
+  email    String @unique
+  password String
+}
+
+model Club {
+  club_id     Int @id @default(autoincrement())
+  club_name   String
+  description String
+
+  organizers Organizer[]
+  events     Event[]
+  faculty    Faculty[]
+}
+
+model Event {
+  event_id   Int @id @default(autoincrement())
+  title      String
+  description String
+  date       DateTime
+  time       String
+  venue      String
+  status     String @default("PENDING")
+
+  club_id   Int
+  club      Club @relation(fields: [club_id], references: [club_id])
+
+  created_by Int
+  organizer  Organizer @relation(fields: [created_by], references: [org_id])
+
+  promotions EventPromotion[]
+  bookmarks  Bookmark[]
+}
+
+model Bookmark {
+  id         Int @id @default(autoincrement())
+  student_id Int
+  event_id   Int
+
+  student Student @relation(fields: [student_id], references: [student_id])
+  event   Event   @relation(fields: [event_id], references: [event_id])
+
+  @@unique([student_id, event_id])
+}
+
+model EventPromotion {
+  promo_id   Int @id @default(autoincrement())
+  media_type String
+  media_url  String
+  caption    String?
+
+  event_id Int
+  event    Event @relation(fields: [event_id], references: [event_id])
+}

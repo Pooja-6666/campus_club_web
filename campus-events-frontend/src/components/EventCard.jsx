@@ -2,7 +2,11 @@
 import { useEffect, useState } from "react";
 import { addBookmark, removeBookmark } from "../services/api";
 
-function EventCard({ item, onBookmarkChange }) {
+function EventCard({
+  item,
+  onBookmarkChange,
+  showBookmark = true,
+}) {
   const event = item.event || item;
   const posterUrl =
     event.posterUrl || "/event-posters/default-event.png";
@@ -70,21 +74,25 @@ function EventCard({ item, onBookmarkChange }) {
               {event.title}
             </h3>
 
-            <button
-              type="button"
-              className={`poster-bookmark-button ${
-                isBookmarked ? "bookmarked" : ""
-              }`}
-              onClick={handleBookmark}
-              disabled={loading}
-              aria-label={
-                isBookmarked ? "Remove bookmark" : "Bookmark event"
-              }
-              aria-pressed={isBookmarked}
-              title={isBookmarked ? "Remove bookmark" : "Bookmark event"}
-            >
-              {isBookmarked ? "♥" : "♡"}
-            </button>
+
+            {showBookmark && (
+              <button
+                type="button"
+                className={`poster-bookmark-button ${
+                  isBookmarked ? "bookmarked" : ""
+                }`}
+                onClick={handleBookmark}
+                disabled={loading}
+                aria-label={
+                  isBookmarked ? "Remove bookmark" : "Bookmark event"
+                }
+                aria-pressed={isBookmarked}
+                title={isBookmarked ? "Remove bookmark" : "Bookmark event"}
+              >
+                {isBookmarked ? "♥" : "♡"}
+              </button>
+            )}
+
 
             <button
               type="button"
@@ -148,18 +156,21 @@ function EventCard({ item, onBookmarkChange }) {
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  className="poster-modal-bookmark"
-                  onClick={handleBookmark}
-                  disabled={loading}
-                >
-                  {loading
-                    ? "Please wait..."
-                    : isBookmarked
-                      ? "♥ Bookmarked"
-                      : "♡ Bookmark Event"}
-                </button>
+                {showBookmark && (
+                  <button
+                    type="button"
+                    className="poster-modal-bookmark"
+                    onClick={handleBookmark}
+                    disabled={loading}
+                  >
+                    {loading
+                      ? "Please wait..."
+                      : isBookmarked
+                        ? "♥ Bookmarked"
+                        : "♡ Bookmark Event"}
+                  </button>
+                )}
+
               </div>
 
               <div className="event-modal-poster-container">

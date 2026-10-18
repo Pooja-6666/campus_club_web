@@ -1,5 +1,5 @@
 const prisma = require("../config/prisma");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const {
   generateToken,
 } = require("../utils/jwt");
@@ -47,6 +47,47 @@ const loginStudent = async (email, password) => {
   };
 };
 
+
+const loginOrganizer = async (email, password) => {
+  if (!isValidEmail(email) || !isValidPassword(password)) {
+    throw new Error("Invalid email or password");
+  }
+
+  const organizer = await prisma.organizer.findUnique({
+    where: { email },
+  });
+
+  if (!organizer) {
+    throw new Error("Invalid email or password");
+  }
+
+  const passwordMatch = await bcrypt.compare(
+    password,
+    organizer.password
+  );
+
+  if (!passwordMatch) {
+    throw new Error("Invalid email or password");
+  }
+
+  const token = generateToken({
+    id: organizer.org_id,
+    role: "ORGANIZER",
+  });
+
+  return {
+    token,
+    user: {
+      id: organizer.org_id,
+      name: organizer.name,
+      email: organizer.email,
+      role: "ORGANIZER",
+    },
+  };
+};
+
+
 module.exports = {
   loginStudent,
+  loginOrganizer,
 };

@@ -772,6 +772,38 @@ app.post("/bookmark", authMiddleware, async (req, res, next) => {
   }
 });
 
+
+app.get("/bookmarks", authMiddleware, async (req, res, next) => {
+  try {
+    if (req.user.role !== "STUDENT") {
+      return res.status(403).json({
+        error: "Only students can view bookmarks",
+      });
+    }
+
+    const bookmarks = await prisma.bookmark.findMany({
+      where: {
+        student_id: req.user.id,
+      },
+      include: {
+        event: {
+          include: {
+            club: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.json(bookmarks);
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 app.delete("/bookmark/:event_id", authMiddleware, async (req, res, next) => {
   try {
     if (req.user.role !== "STUDENT") {
@@ -1192,4 +1224,5 @@ app.use((err, req, res, next) => {
 app.listen(3000, "0.0.0.0", () => {
   console.log("Server running on port 3000");
 });
+
 

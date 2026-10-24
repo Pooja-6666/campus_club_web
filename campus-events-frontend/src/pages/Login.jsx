@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 
-function Login({onLogin}) {
+function Login({ onLogin, onBack }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -10,16 +11,16 @@ function Login({onLogin}) {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:3000/student/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+      const response = await fetch(
+        "http://localhost:3000/student/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       const data = await response.json();
 
@@ -28,11 +29,8 @@ function Login({onLogin}) {
         return;
       }
 
-      // Store JWT
       localStorage.setItem("token", data.token);
-
       onLogin();
-      
     } catch (error) {
       console.error(error);
       setError("Unable to connect to server");
@@ -40,44 +38,64 @@ function Login({onLogin}) {
   };
 
   return (
-    <div>
-      <h1>Campus Events</h1>
+    <div className="login-page">
+      <button
+        className="back-button"
+        type="button"
+        onClick={onBack}
+      >
+        ← Back to role selection
+      </button>
 
-      <h2>Login</h2>
-
-      <form onSubmit={handleLogin}>
-        <div>
-          <label>Email</label>
-          <br />
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter your email"
-            required
-          />
+      <div className="login-card">
+        <div className="login-brand">
+          Campus<span>Events</span>
         </div>
 
-        <br />
+        <div className="login-icon">🎓</div>
 
-        <div>
-          <label>Password</label>
-          <br />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-            required
-          />
-        </div>
+        <h2>Student Login</h2>
 
-        <br />
+        <p className="login-subtitle">
+          Welcome back! Discover what's happening on campus.
+        </p>
 
-        <button type="submit">Login</button>
-      </form>
+        <form onSubmit={handleLogin} className="login-form">
+          <div className="login-field">
+            <label htmlFor="student-email">Email address</label>
+            <input
+              id="student-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+          </div>
 
-      {error && <p>{error}</p>}
+          <div className="login-field">
+            <label htmlFor="student-password">Password</label>
+            <input
+              id="student-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+
+          {error && <p className="login-error">{error}</p>}
+
+          <button type="submit" className="login-submit">
+            Login to your account →
+          </button>
+        </form>
+
+        <p className="login-footer">
+          Your campus life, all in one place.
+        </p>
+      </div>
     </div>
   );
 }

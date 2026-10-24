@@ -371,7 +371,7 @@ async function getRecommendations(studentId, limit = 10) {
   const rawCandidates = await prisma.event.findMany({
     where: {
       status: "APPROVED",
-      event_id: { notIn: [...engagedEventIds, ...excludedEventIds] },
+      event_id: { notIn: [...excludedEventIds] },
     },
     include: { club: true },
   });

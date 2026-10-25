@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import EventCard from "../components/EventCard";
+import CreateEvent from "./CreateEvent"; // <-- Import CreateEvent component
 
 function OrganizerDashboard({ user, onLogout }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false); // <-- Toggle state for form
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -12,7 +14,7 @@ function OrganizerDashboard({ user, onLogout }) {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          "http://localhost:3000/api/organizer/events",
+          "http://localhost:3000/organizer/events",
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -20,7 +22,13 @@ function OrganizerDashboard({ user, onLogout }) {
           }
         );
 
-        const data = await response.json();
+        const responseText = await response.text();
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseErr) {
+          throw new Error(`Server returned HTML/Non-JSON: ${responseText.substring(0, 100)}...`);
+        }
 
         if (!response.ok) {
           throw new Error(
@@ -37,7 +45,32 @@ function OrganizerDashboard({ user, onLogout }) {
     };
 
     fetchEvents();
-  }, []);
+  }, [showCreateForm]); // Refetch events when coming back from creating one
+
+  // If user clicked "+ Create Event", render the CreateEvent view
+  if (showCreateForm) {
+    return (
+      <div className="organizer-dashboard">
+        <header className="organizer-dashboard-header">
+          <div>
+            <h1>Campus<span>Events</span></h1>
+            <p>Organizer Dashboard</p>
+          </div>
+
+          <button
+            onClick={() => setShowCreateForm(false)}
+            className="organizer-logout-button"
+          >
+            ← Back to Dashboard
+          </button>
+        </header>
+
+        <main className="organizer-dashboard-main">
+          <CreateEvent />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="organizer-dashboard">
@@ -55,7 +88,7 @@ function OrganizerDashboard({ user, onLogout }) {
       <main className="organizer-dashboard-main">
         <section className="organizer-welcome">
           <p>WELCOME BACK</p>
-          <h2>Hello, {user.name}!</h2>
+          <h2>Hello, {user?.name || "Organizer"}!</h2>
           <p>Manage your campus events from one place.</p>
         </section>
 
@@ -68,9 +101,7 @@ function OrganizerDashboard({ user, onLogout }) {
 
             <button
               className="organizer-create-button"
-              onClick={() => {
-                alert("Event creation will be connected next.");
-              }}
+              onClick={() => setShowCreateForm(true)}
             >
               + Create Event
             </button>
@@ -90,31 +121,29 @@ function OrganizerDashboard({ user, onLogout }) {
           )}
 
           {!loading && !error && events.length > 0 && (
+            <div className="events-grid" aria-label="My events">
+              {events.map((event) => (
+                <div className="organizer-event-wrapper" key={event.event_id}>
+                  <EventCard
+                    item={{
+                      ...event,
+                      isBookmarked: false,
+                    }}
+                    showBookmark={false}
+                  />
 
-        <div className="events-grid" aria-label="My events">
-        {events.map((event) => (
-            <div className="organizer-event-wrapper" key={event.event_id}>
-            <EventCard
-                item={{
-                ...event,
-                isBookmarked: false,
-                }}
-                showBookmark={false}
-            />
-
-            <div className="organizer-event-status">
-                <span
-                className={`organizer-status status-${String(
-                    event.status || "pending"
-                ).toLowerCase()}`}
-                >
-                Status: {event.status || "PENDING"}
-                </span>
+                  <div className="organizer-event-status">
+                    <span
+                      className={`organizer-status status-${String(
+                        event.status || "pending"
+                      ).toLowerCase()}`}
+                    >
+                      Status: {event.status || "PENDING"}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
-            </div>
-        ))}
-        </div>
-
           )}
         </section>
       </main>

@@ -1,4 +1,3 @@
-
 import "./App.css";
 import { useState } from "react";
 import Login from "./pages/Login";
@@ -6,6 +5,7 @@ import Home from "./pages/Home";
 import RoleSelection from "./pages/RoleSelection";
 import OrganizerLogin from "./pages/OrganizerLogin";
 import OrganizerDashboard from "./pages/OrganizerDashboard";
+import FacultyDashboard from "./pages/FacultyDashboard"; // <-- Imported Faculty Dashboard
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -40,16 +40,23 @@ function App() {
     setSelectedRole(null);
   };
 
+  // ==============================
+  // 🔐 ROLE-BASED DASHBOARD ROUTING
+  // ==============================
   if (user) {
     if (user.role === "ORGANIZER") {
       return <OrganizerDashboard user={user} onLogout={handleLogout} />;
+    }
+
+    if (user.role === "FACULTY") {
+      return <FacultyDashboard user={user} onLogout={handleLogout} />;
     }
 
     if (user.role === "STUDENT") {
       return <Home />;
     }
 
-    // Avoid displaying the student home for an unknown role.
+    // Fallback for unknown role
     handleLogout();
     return null;
   }
@@ -58,6 +65,7 @@ function App() {
     return <RoleSelection onSelectRole={setSelectedRole} />;
   }
 
+  // Student Login / Signup flow
   if (selectedRole === "student") {
     return (
       <Login
@@ -67,9 +75,20 @@ function App() {
     );
   }
 
+  // Organizer Login / Signup flow
   if (selectedRole === "organizer") {
     return (
       <OrganizerLogin
+        onLogin={handleLogin}
+        onBack={() => setSelectedRole(null)}
+      />
+    );
+  }
+
+  // Faculty Login / Signup flow (now using the unified smart login component)
+  if (selectedRole === "faculty") {
+    return (
+      <Login
         onLogin={handleLogin}
         onBack={() => setSelectedRole(null)}
       />
@@ -81,8 +100,7 @@ function App() {
       <button onClick={() => setSelectedRole(null)}>
         ← Back to role selection
       </button>
-      <h2>Faculty Login</h2>
-      <p>This login will be implemented in a later phase.</p>
+      <h2>Invalid Role</h2>
     </div>
   );
 }

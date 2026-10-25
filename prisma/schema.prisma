@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -51,9 +50,14 @@ model Admin {
 }
 
 model Club {
-  club_id     Int    @id @default(autoincrement())
-  club_name   String
-  description String
+  club_id      Int      @id @default(autoincrement())
+  club_name    String   @unique
+  description  String?
+  
+  // 👉 NEW fields added safely as optional (?) so existing clubs don't break
+  department   String?  // e.g., "Computer Science & Engineering"
+  faculty_lead String?  // Faculty coordinator name
+  logo_url     String?  // Club logo image path
 
   organizers Organizer[]
   events     Event[]
@@ -66,8 +70,9 @@ model Event {
   description   String
   date          DateTime
   endDate       DateTime?
-  time          String
+  time          String?
   venue         String
+  contact_phone String?
   status        String          @default("PENDING")
   category      String?
   tags          String[]        @default([])
@@ -77,9 +82,9 @@ model Event {
   createdAt     DateTime        @default(now())
 
   club_id    Int
-  club       Club            @relation(fields: [club_id], references: [club_id])
+  club       Club      @relation(fields: [club_id], references: [club_id])
   created_by Int
-  organizer  Organizer       @relation(fields: [created_by], references: [org_id])
+  organizer  Organizer @relation(fields: [created_by], references: [org_id])
 
   promotions EventPromotion[]
   bookmarks  Bookmark[]
@@ -159,7 +164,7 @@ model NotInterested {
 }
 
 model EventPromotion {
-  promo_id   Int     @id @default(autoincrement())
+  promo_id   Int    @id @default(autoincrement())
   media_type String
   media_url  String
   caption    String?

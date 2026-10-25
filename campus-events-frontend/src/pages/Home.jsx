@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import {
   getRecommendedEvents,
@@ -193,74 +192,74 @@ const filteredEvents = events.filter((item) => {
 
 
   const handleMyBookmarks = async () => {
-  setActivePage("bookmarks");
-  setLoading(true);
-  setError("");
+    setActivePage("bookmarks");
+    setLoading(true);
+    setError("");
 
-  try {
-    const data = await getBookmarks();
-    setBookmarks(data);
+    try {
+      const data = await getBookmarks();
+      setBookmarks(data);
 
-    setBookmarkedIds(
-      new Set(data.map((bookmark) => Number(bookmark.event_id)))
-    );
-  } catch (err) {
-    console.error(err);
-    setError("Unable to load bookmarks");
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-const handleHome = async () => {
-  setActivePage("home");
-  setLoading(true);
-  setError("");
-
-  try {
-    const data = await getRecommendedEvents();
-    setEvents(data);
-  } catch (err) {
-    console.error(err);
-    setError("Unable to load recommendations");
-  } finally {
-    setLoading(false);
-  }
-};
+      setBookmarkedIds(
+        new Set(data.map((bookmark) => Number(bookmark.event_id)))
+      );
+    } catch (err) {
+      console.error(err);
+      setError("Unable to load bookmarks");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
-const handleAllEvents = async () => {
-  setActivePage("allEvents");
-  setLoading(true);
-  setError("");
+  const handleHome = async () => {
+    setActivePage("home");
+    setLoading(true);
+    setError("");
 
-  try {
-    const data = await getAllEvents();
-    setEvents(data);
-  } catch (err) {
-    console.error(err);
-    setError("Unable to load all events");
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const data = await getRecommendedEvents();
+      setEvents(data);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to load recommendations");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const handleProfile = async () => {
-  setActivePage("profile");
-  setLoading(true);
-  setError("");
 
-  try {
-    const data = await getProfile();
-    setProfile(data);
-  } catch (err) {
-    console.error(err);
-    setError("Unable to load profile");
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleAllEvents = async () => {
+    setActivePage("allEvents");
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await getAllEvents();
+      setEvents(data);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to load all events");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProfile = async () => {
+    setActivePage("profile");
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await getProfile();
+      setProfile(data);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to load profile");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -481,7 +480,6 @@ const handleProfile = async () => {
                     setSelectedStartTime("");
                     setSelectedEndTime("");
                     setSelectedClub("All");
-                    setSelectedMode("All");
 
                     setAppliedFilters({
                       searchText: "",

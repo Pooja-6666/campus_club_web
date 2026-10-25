@@ -1,15 +1,22 @@
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config();
+import express from "express";
+import cors from "cors";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 
-const express = require("express");
-const cors = require("cors");
-const prisma = require("./prismaClient");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+// Fix __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const { getRecommendations } = require("./recommend");
+import prisma from "./prismaClient.js";
+import { getRecommendations } from "./recommend.js";
+import ocrService from "./src/services/ocr.service.js"; // <-- Required for AI OCR parsing
+
 const app = express();
 
 // ==============================
@@ -68,7 +75,6 @@ app.use(cors());
 app.use(express.json());
 app.use("/uploads", express.static(uploadDir));
 
-
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
@@ -110,6 +116,31 @@ const authMiddleware = (req, res, next) => {
 };
 
 // ==============================
+// 🔍 UNIVERSAL EMAIL CHECK ENDPOINT
+// ==============================
+app.post("/auth/check-email", async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const student = await prisma.student.findUnique({ where: { email } });
+    if (student) return res.json({ exists: true, role: "STUDENT" });
+
+    const organizer = await prisma.organizer.findUnique({ where: { email } });
+    if (organizer) return res.json({ exists: true, role: "ORGANIZER" });
+
+    const faculty = await prisma.faculty.findUnique({ where: { email } });
+    if (faculty) return res.json({ exists: true, role: "FACULTY" });
+
+    return res.json({ exists: false });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ==============================
 // 🧑‍🎓 STUDENT AUTH
 // ==============================
 
@@ -144,12 +175,23 @@ app.post("/student/signup", async (req, res, next) => {
       },
     });
 
-    // Do not return password hash
+    const token = jwt.sign(
+      {
+        id: student.student_id,
+        role: "STUDENT",
+      },
+      JWT_SECRET
+    );
+
     res.status(201).json({
-      student_id: student.student_id,
-      name: student.name,
-      email: student.email,
-      interests: student.interests,
+      token,
+      user: {
+        id: student.student_id,
+        name: student.name,
+        email: student.email,
+        role: "STUDENT",
+        interests: student.interests,
+      },
     });
   } catch (error) {
     next(error);
@@ -192,7 +234,15 @@ app.post("/student/login", async (req, res, next) => {
       JWT_SECRET
     );
 
-    res.json({ token });
+    res.json({
+      token,
+      user: {
+        id: user.student_id,
+        name: user.name,
+        email: user.email,
+        role: "STUDENT",
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -229,7 +279,7 @@ app.get("/profile", authMiddleware, async (req, res, next) => {
 });
 
 // ==============================
-// 👨‍💼 ORGANIZER AUTH
+// 👨‍💼 ORGANIZER AUTH & OCR
 // ==============================
 
 app.post("/organizer/signup", async (req, res, next) => {
@@ -259,15 +309,27 @@ app.post("/organizer/signup", async (req, res, next) => {
         name,
         email,
         password: hashed,
-        club_id,
+        club_id: Number(club_id),
       },
     });
 
+    const token = jwt.sign(
+      {
+        id: org.org_id,
+        role: "ORGANIZER",
+      },
+      JWT_SECRET
+    );
+
     res.status(201).json({
-      org_id: org.org_id,
-      name: org.name,
-      email: org.email,
-      club_id: org.club_id,
+      token,
+      user: {
+        id: org.org_id,
+        name: org.name,
+        email: org.email,
+        role: "ORGANIZER",
+        club_id: org.club_id,
+      },
     });
   } catch (error) {
     next(error);
@@ -310,11 +372,50 @@ app.post("/organizer/login", async (req, res, next) => {
       JWT_SECRET
     );
 
-    res.json({ token });
+    res.json({
+      token,
+      user: {
+        id: org.org_id,
+        name: org.name,
+        email: org.email,
+        role: "ORGANIZER",
+      },
+    });
   } catch (error) {
     next(error);
   }
 });
+
+// 🤖 AI Poster OCR Parsing Endpoint
+app.post(
+  "/organizer/parse-poster",
+  authMiddleware,
+  upload.single("poster"),
+  async (req, res, next) => {
+    try {
+      if (req.user.role !== "ORGANIZER") {
+        return res.status(403).json({ error: "Only organizers allowed" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "No poster image provided" });
+      }
+
+      const imagePath = req.file.path;
+      console.log("Running Tesseract OCR on:", imagePath);
+      
+      const result = await ocrService.extractTextFromPoster(imagePath);
+
+      res.json({
+        message: "Poster successfully parsed via OCR",
+        extractedText: result.extractedText,
+        posterUrl: `/uploads/${req.file.filename}`
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 // ==============================
 // 👩‍🏫 FACULTY AUTH
@@ -347,15 +448,27 @@ app.post("/faculty/signup", async (req, res, next) => {
         name,
         email,
         password: hashed,
-        club_id,
+        club_id: Number(club_id),
       },
     });
 
+    const token = jwt.sign(
+      {
+        id: faculty.faculty_id,
+        role: "FACULTY",
+      },
+      JWT_SECRET
+    );
+
     res.status(201).json({
-      faculty_id: faculty.faculty_id,
-      name: faculty.name,
-      email: faculty.email,
-      club_id: faculty.club_id,
+      token,
+      user: {
+        id: faculty.faculty_id,
+        name: faculty.name,
+        email: faculty.email,
+        role: "FACULTY",
+        club_id: faculty.club_id,
+      },
     });
   } catch (error) {
     next(error);
@@ -398,7 +511,15 @@ app.post("/faculty/login", async (req, res, next) => {
       JWT_SECRET
     );
 
-    res.json({ token });
+    res.json({
+      token,
+      user: {
+        id: f.faculty_id,
+        name: f.name,
+        email: f.email,
+        role: "FACULTY",
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -408,75 +529,76 @@ app.post("/faculty/login", async (req, res, next) => {
 // 📅 EVENTS
 // ==============================
 
-// Organizer creates event
 app.post(
   "/events",
   authMiddleware,
   upload.single("poster"),
   async (req, res, next) => {
-  try {
-    if (req.user.role !== "ORGANIZER") {
-      return res.status(403).json({
-        error: "Only organizers allowed",
-      });
-    }
+    try {
+      if (req.user.role !== "ORGANIZER") {
+        return res.status(403).json({
+          error: "Only organizers allowed",
+        });
+      }
 
-    const {
-      title,
-      description,
-      date,
-      time,
-      venue,
-      club_id,
-      category,
-      tags,
-      capacity,
-      endDate,
-    } = req.body;
-
-    if (!title || !description || !date || !venue || !club_id) {
-      return res.status(400).json({
-        error: "Title, description, date, venue and club_id are required",
-      });
-    }
-
-    const event = await prisma.event.create({
-      data: {
+      const {
         title,
         description,
-        date: new Date(date),
-        endDate: endDate ? new Date(endDate) : null,
+        date,
         time,
         venue,
-        club_id: Number(club_id),
-        category: category || null,
-        tags:
-          typeof tags === "string"
-            ? tags.split(",").map((tag) => tag.trim()).filter(Boolean)
-            : tags || [],
-        capacity: capacity ? Number(capacity) : null,
+        contact_phone,
+        club_id,
+        category,
+        tags,
+        capacity,
+        endDate,
+      } = req.body;
 
-        posterUrl: req.file
-          ? `/uploads/${req.file.filename}`
+      if (!title || !description || !date || !venue || !club_id) {
+        return res.status(400).json({
+          error: "Title, description, date, venue and club_id are required",
+        });
+      }
+
+      const event = await prisma.event.create({
+        data: {
+          title,
+          description,
+          date: new Date(date),
+          endDate: endDate ? new Date(endDate) : null,
+          time,
+          venue,
+          contact_phone: contact_phone || null, // 👈 Captured phone number
+          club_id: Number(club_id),
+          category: category || null,
+          tags:
+            typeof tags === "string"
+              ? tags.split(",").map((tag) => tag.trim()).filter(Boolean)
+              : tags || [],
+          capacity: capacity ? Number(capacity) : null,
+
+          posterUrl: req.file
+            ? `/uploads/${req.file.filename}`
+            : null,
+
+          created_by: req.user.id,
+          status: "PENDING",
+        },
+      });
+
+      res.status(201).json({
+        ...event,
+        posterUrl: event.posterUrl
+          ? `http://localhost:3000${event.posterUrl}`
           : null,
-
-        created_by: req.user.id,
-        status: "PENDING",
-      },
-    });
-
-    res.status(201).json({
-  ...event,
-  posterUrl: event.posterUrl
-    ? `http://localhost:3000${event.posterUrl}`
-    : null,
-});
-  } catch (error) {
-    next(error);
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
-// View approved events
 app.get("/events", async (req, res, next) => {
   try {
     const events = await prisma.event.findMany({
@@ -668,37 +790,6 @@ app.get("/events/recommended", authMiddleware, async (req, res, next) => {
   }
 });
 
-// TEMPORARY: recommendation testing without authentication
-app.get("/events/recommended-test", async (req, res, next) => {
-  try {
-    const studentId = Number(req.query.studentId);
-    const limit = Number(req.query.limit) || 10;
-
-    if (!studentId) {
-      return res.status(400).json({
-        error: "studentId is required",
-      });
-    }
-
-    const recommendations = await getRecommendations(
-      studentId,
-      limit
-    );
-
-    res.json({
-      studentId,
-      count: recommendations.length,
-      recommendations,
-    });
-  } catch (error) {
-    console.error("Recommendation test error:", error);
-
-    res.status(500).json({
-      error: "Failed to generate recommendations",
-    });
-  }
-});
-
 app.get("/organizer/events", authMiddleware, async (req, res, next) => {
   try {
     if (req.user.role !== "ORGANIZER") {
@@ -772,7 +863,6 @@ app.post("/bookmark", authMiddleware, async (req, res, next) => {
   }
 });
 
-
 app.get("/bookmarks", authMiddleware, async (req, res, next) => {
   try {
     if (req.user.role !== "STUDENT") {
@@ -803,7 +893,6 @@ app.get("/bookmarks", authMiddleware, async (req, res, next) => {
   }
 });
 
-
 app.delete("/bookmark/:event_id", authMiddleware, async (req, res, next) => {
   try {
     if (req.user.role !== "STUDENT") {
@@ -827,229 +916,9 @@ app.delete("/bookmark/:event_id", authMiddleware, async (req, res, next) => {
   }
 });
 
-// TEMPORARY: bookmark testing without authentication
-app.post("/bookmark-test", async (req, res, next) => {
-  try {
-    const studentId = Number(req.body.student_id);
-    const eventId = Number(req.body.event_id);
-
-    if (!studentId || !eventId) {
-      return res.status(400).json({
-        error: "student_id and event_id are required",
-      });
-    }
-
-    const bookmark = await prisma.bookmark.upsert({
-      where: {
-        student_id_event_id: {
-          student_id: studentId,
-          event_id: eventId,
-        },
-      },
-      update: {},
-      create: {
-        student_id: studentId,
-        event_id: eventId,
-      },
-    });
-
-    res.json(bookmark);
-  } catch (error) {
-    console.error("Bookmark test error:", error);
-
-    res.status(500).json({
-      error: "Failed to create bookmark",
-    });
-  }
-});
-
 // ==============================
-// ✅ RSVP
+// ✅ CLUBS
 // ==============================
-
-app.post("/rsvp", authMiddleware, async (req, res, next) => {
-  try {
-    if (req.user.role !== "STUDENT") {
-      return res.status(403).json({
-        error: "Only students can RSVP",
-      });
-    }
-
-    const { event_id } = req.body;
-
-    if (!event_id) {
-      return res.status(400).json({
-        error: "event_id is required",
-      });
-    }
-
-    const rsvp = await prisma.rSVP.upsert({
-      where: {
-        student_id_event_id: {
-          student_id: req.user.id,
-          event_id,
-        },
-      },
-      update: {
-        status: "GOING",
-      },
-      create: {
-        student_id: req.user.id,
-        event_id,
-        status: "GOING",
-      },
-    });
-
-    res.json(rsvp);
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.put("/rsvp/:event_id/cancel", authMiddleware, async (req, res, next) => {
-  try {
-    if (req.user.role !== "STUDENT") {
-      return res.status(403).json({
-        error: "Only students can cancel RSVP",
-      });
-    }
-
-    const rsvp = await prisma.rSVP.update({
-      where: {
-        student_id_event_id: {
-          student_id: req.user.id,
-          event_id: Number(req.params.event_id),
-        },
-      },
-      data: {
-        status: "CANCELLED",
-      },
-    });
-
-    res.json(rsvp);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// ==============================
-// 📝 POST-EVENT FEEDBACK
-// ==============================
-
-app.post("/events/:id/feedback", authMiddleware, async (req, res, next) => {
-  try {
-    if (req.user.role !== "STUDENT") {
-      return res.status(403).json({
-        error: "Only students can submit feedback",
-      });
-    }
-
-    const { rating, comment } = req.body;
-    const event_id = Number(req.params.id);
-
-    if (!rating || rating < 1 || rating > 5) {
-      return res.status(400).json({
-        error: "rating must be 1-5",
-      });
-    }
-
-    const feedback = await prisma.eventFeedback.upsert({
-      where: {
-        student_id_event_id: {
-          student_id: req.user.id,
-          event_id,
-        },
-      },
-      update: {
-        rating,
-        comment,
-      },
-      create: {
-        student_id: req.user.id,
-        event_id,
-        rating,
-        comment,
-      },
-    });
-
-    res.json(feedback);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// TEMPORARY: feedback testing without authentication
-app.post("/feedback-test", async (req, res, next) => {
-  try {
-    const studentId = Number(req.body.student_id);
-    const eventId = Number(req.body.event_id);
-    const rating = Number(req.body.rating);
-
-    if (!studentId || !eventId || !rating) {
-      return res.status(400).json({
-        error: "student_id, event_id and rating are required",
-      });
-    }
-
-    if (rating < 1 || rating > 5) {
-      return res.status(400).json({
-        error: "rating must be between 1 and 5",
-      });
-    }
-
-    const feedback = await prisma.eventFeedback.upsert({
-      where: {
-        student_id_event_id: {
-          student_id: studentId,
-          event_id: eventId,
-        },
-      },
-      update: {
-        rating,
-      },
-      create: {
-        student_id: studentId,
-        event_id: eventId,
-        rating,
-      },
-    });
-
-    res.json(feedback);
-  } catch (error) {
-    console.error("Feedback test error:", error);
-
-    res.status(500).json({
-      error: "Failed to create feedback",
-    });
-  }
-});
-
-// ==============================
-// 🏫 CLUBS
-// ==============================
-
-app.post("/clubs", async (req, res, next) => {
-  try {
-    const { club_name, description } = req.body;
-
-    if (!club_name) {
-      return res.status(400).json({
-        error: "club_name is required",
-      });
-    }
-
-    const club = await prisma.club.create({
-      data: {
-        club_name,
-        description,
-      },
-    });
-
-    res.status(201).json(club);
-  } catch (error) {
-    next(error);
-  }
-});
 
 app.get("/clubs", async (req, res, next) => {
   try {
@@ -1065,155 +934,18 @@ app.get("/clubs", async (req, res, next) => {
   }
 });
 
-// ==============================
-// ROOT
-// ==============================
-
-app.get(
-  "/faculty/events/pending",
-  authMiddleware,
-  async (req, res, next) => {
-    try {
-      if (req.user.role !== "FACULTY") {
-        return res.status(403).json({
-          error: "Only faculty allowed",
-        });
-      }
-
-      const events = await prisma.event.findMany({
-        where: {
-          status: "PENDING",
-        },
-        include: {
-          club: true,
-          organizer: true,
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-      });
-
-      res.json(
-        events.map((event) => ({
-          ...event,
-          posterUrl: event.posterUrl
-            ? `http://localhost:3000${event.posterUrl}`
-            : null,
-        }))
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 app.get("/", (req, res) => {
   res.send("Backend running 🚀");
 });
 
-app.put(
-  "/faculty/events/:id/approve",
-  authMiddleware,
-  async (req, res, next) => {
-    try {
-      if (req.user.role !== "FACULTY") {
-        return res.status(403).json({
-          error: "Only faculty allowed",
-        });
-      }
-
-      const eventId = Number(req.params.id);
-
-      const event = await prisma.event.findUnique({
-        where: {
-          event_id: eventId,
-        },
-      });
-
-      if (!event) {
-        return res.status(404).json({
-          error: "Event not found",
-        });
-      }
-
-      if (event.status !== "PENDING") {
-        return res.status(400).json({
-          error: "Only pending events can be approved",
-        });
-      }
-
-      const updatedEvent = await prisma.event.update({
-        where: {
-          event_id: eventId,
-        },
-        data: {
-          status: "APPROVED",
-        },
-      });
-
-      res.json(updatedEvent);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-app.put(
-  "/faculty/events/:id/reject",
-  authMiddleware,
-  async (req, res, next) => {
-    try {
-      if (req.user.role !== "FACULTY") {
-        return res.status(403).json({
-          error: "Only faculty allowed",
-        });
-      }
-
-      const eventId = Number(req.params.id);
-
-      const event = await prisma.event.findUnique({
-        where: {
-          event_id: eventId,
-        },
-      });
-
-      if (!event) {
-        return res.status(404).json({
-          error: "Event not found",
-        });
-      }
-
-      if (event.status !== "PENDING") {
-        return res.status(400).json({
-          error: "Only pending events can be rejected",
-        });
-      }
-
-      const updatedEvent = await prisma.event.update({
-        where: {
-          event_id: eventId,
-        },
-        data: {
-          status: "REJECTED",
-        },
-      });
-
-      res.json(updatedEvent);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
 // ==============================
 // 🚨 ERROR HANDLER
-// Must be the LAST app.use()
 // ==============================
 
 app.use((err, req, res, next) => {
   console.error(err);
-
   res.status(500).json({
-    error: "Something went wrong",
+    error: err.message || "Something went wrong",
   });
 });
 
@@ -1221,8 +953,7 @@ app.use((err, req, res, next) => {
 // SERVER START
 // ==============================
 
-app.listen(3000, "0.0.0.0", () => {
-  console.log("Server running on port 3000");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
-
-

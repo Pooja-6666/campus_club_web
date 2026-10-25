@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 
 function OrganizerLogin({ onLogin, onBack }) {
@@ -13,8 +12,9 @@ function OrganizerLogin({ onLogin, onBack }) {
     setLoading(true);
 
     try {
+      console.log("Attempting login to: http://localhost:3000/organizer/login");
       const response = await fetch(
-        "http://localhost:3000/api/auth/organizer/login",
+        "http://localhost:3000/organizer/login",
         {
           method: "POST",
           headers: {
@@ -24,7 +24,16 @@ function OrganizerLogin({ onLogin, onBack }) {
         }
       );
 
-      const data = await response.json();
+      // Read response text first to debug if it's HTML or JSON
+      const responseText = await response.text();
+      console.log("Raw response from server:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseErr) {
+        throw new Error(`Server returned HTML/Non-JSON: ${responseText.substring(0, 100)}...`);
+      }
 
       if (!response.ok) {
         throw new Error(
@@ -32,18 +41,22 @@ function OrganizerLogin({ onLogin, onBack }) {
         );
       }
 
-      if (!data.token || data.user?.role !== "ORGANIZER") {
+      if (!data.token) {
         throw new Error("The server returned an invalid login response.");
       }
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("user", JSON.stringify({
+        email: email,
+        role: "ORGANIZER"
+      }));
 
       onLogin();
     } catch (err) {
+      console.error("Login error caught:", err);
       setError(
-        err.message === "Failed to fetch"
-          ? "Cannot connect to the backend. Check that it is running on port 3000."
+        err.message.includes("Failed to fetch")
+          ? "Cannot connect to the backend. Check that the backend is running on port 3000."
           : err.message
       );
     } finally {

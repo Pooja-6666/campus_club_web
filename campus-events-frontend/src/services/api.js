@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "http://localhost:3000/api";
 
 export const getRecommendedEvents = async () => {
   const token = localStorage.getItem("token");

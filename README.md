@@ -1,4 +1,4 @@
-# ⚡ UniPulse (Campus Event & Club Management Platform)
+# ⚡ Centralized Platform for College Event Discovery and Recommendation
 
 > A high-performance, professional-grade full-stack campus event platform featuring AI-driven OCR poster automation, decoupled microservices, role-based access control, and a polished responsive UI.
 
@@ -28,3 +28,22 @@
 ```bash
 git clone [https://github.com/Pooja-6666/campus_club_web.git](https://github.com/Pooja-6666/campus_club_web.git)
 cd campus_club_web
+
+🌐 Deployment
+Backend / Services: Deployed on Render / Cloud platforms.
+
+Authentication: Stateless JWT sent via request headers (Authorization: <token>).
+
+👤 Roles & API Endpoints
+Student: View, filter, and bookmark events (/student/signup, /student/login, /events, /bookmark)
+
+Organizer: Create and manage club events (/organizer/signup, /organizer/login, /events)
+
+Faculty: Review, approve, or reject pending events (/faculty/signup, /faculty/login, /events/pending, /events/:id/approve)
+
+🧪 Test Credentials
+Organizer: organizer@test.com / password123 (or org@test.com / 1234)
+
+Student: pooja2@test.com / 1234
+
+Faculty: faculty@test.com / 1234

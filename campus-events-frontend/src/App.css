@@ -518,9 +518,10 @@
 
 .events-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 24px;
   align-items: stretch;
+  width: 100%;
 }
 
 /* Event cards */
@@ -528,7 +529,9 @@
 .event-card {
   position: relative;
   display: flex;
+  flex-direction: column; /* 👈 Forces content to stack vertically */
   min-width: 0;
+  height: 100%;           /* 👈 Ensures uniform card height in the grid */
   overflow: hidden;
   border: 1px solid #49345d;
   border-radius: 20px;

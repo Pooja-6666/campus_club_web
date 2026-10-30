@@ -1,133 +1,30 @@
-# campus_club_web
-Backend API for a Campus Events Management System featuring authentication, role-based access (Student, Organizer, Faculty), event approval workflow, and bookmarking using Node.js, Express, Prisma, and PostgreSQL.
+# ⚡ UniPulse (Campus Event & Club Management Platform)
 
-
-
-
-# 🎓 Campus Events Backend System
-
-A backend API for managing campus events with role-based access (Student, Organizer, Faculty). Built using Node.js, Express, Prisma, and PostgreSQL.
+> A high-performance, professional-grade full-stack campus event platform featuring AI-driven OCR poster automation, decoupled microservices, role-based access control, and a polished responsive UI.
 
 ---
 
-## 🚀 Features
+## 🌟 Key Features
 
-- 🔐 JWT Authentication
-- 👨‍🎓 Student: view & bookmark events
-- 👨‍💼 Organizer: create events
-- 👩‍🏫 Faculty: approve/reject events
-- 🏫 Club-based event system
-- 📅 Event workflow (PENDING → APPROVED/REJECTED)
-- ⭐ Bookmark system
-- 📢 Event promotion support
+* **🤖 AI-Powered Poster OCR Ingestion:** Organizers can upload promotional event posters. An isolated Python/FastAPI microservice leverages OCR (`EasyOCR`) to automatically extract metadata like titles, dates, and venues.
+* **🛡️ Role-Based Access Control (RBAC):** Secure authentication workflows separating **Students**, **Club Organizers**, and **Faculty** with dedicated approval dashboards.
+* **📅 Interactive Student Feed & Bookmarks:** Responsive 3-column event grid with instant bookmarking, detailed event modal views, club attribution, and contact details.
+* **🔌 Decoupled Microservices Architecture:** Modern separation of concerns utilizing a React frontend, a Node.js/Prisma core backend, and a Python/FastAPI AI service.
 
 ---
 
 ## 🛠️ Tech Stack
 
-Node.js, Express, Prisma ORM, PostgreSQL, JWT, bcrypt
+* **Frontend:** React.js, Vite, Custom CSS Grid & Flexbox
+* **Core Backend:** Node.js, Express.js, Prisma ORM, PostgreSQL / SQLite, JWT, bcrypt
+* **AI / ML Microservice:** Python, FastAPI, EasyOCR / Computer Vision
+* **Version Control & Workflow:** Git & GitHub (Feature branch workflow with PR merges)
 
 ---
 
 ## 📁 Setup Instructions
 
-### 1. Clone Repository  
-git clone https://github.com/YOUR_USERNAME/campus_club_web.git  
-cd campus_club_web  
-
-### 2. Install Dependencies  
-npm install  
-
-### 3. Create Environment File (.env)  
-DATABASE_URL="your_postgresql_url"  
-JWT_SECRET="secret123"  
-
-### 4. Run Database Migrations  
-npx prisma migrate dev  
-
-### 5. Start Server  
-node server.js  
-
-Server runs on:  
-http://localhost:3000  
-
----
-
-## 🌐 Deployment
-
-Backend deployed on Render:  
-https://your-backend-url.onrender.com  
-
----
-
-## 🔐 Authentication
-
-Send JWT token in headers:  
-Authorization: <token>
-
----
-
-## 👤 Roles
-
-Student → view & bookmark events  
-Organizer → create events  
-Faculty → approve/reject events  
-
----
-
-## 📌 API Endpoints
-
-### Student
-POST /student/signup  
-POST /student/login  
-GET /profile  
-
-### Organizer
-POST /organizer/signup  
-POST /organizer/login  
-POST /events  
-
-### Faculty
-POST /faculty/signup  
-POST /faculty/login  
-GET /events/pending  
-PUT /events/:id/approve  
-PUT /events/:id/reject  
-
-### Events
-GET /events  
-
-### Bookmark
-POST /bookmark  
-
-### Clubs
-GET /clubs  
-POST /clubs  
-
----
-
-## 🧪 Test Users
-
-Student: pooja2@test.com / 1234  
-Organizer: org@test.com / 1234  
-Faculty: faculty@test.com / 1234  
-
----
-
-## 🚀 Future Improvements
-
-- React frontend integration  
-- Notifications system  
-- Event recommendation engine  
-- Admin dashboard  
-
----
-
-## 👨‍💻 Author
-
-Campus Events Management System Backend
-```
-
----
-
-\
+### 1. Clone the Repository
+```bash
+git clone [https://github.com/Pooja-6666/campus_club_web.git](https://github.com/Pooja-6666/campus_club_web.git)
+cd campus_club_web

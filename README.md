@@ -24,7 +24,7 @@
 
 ## 📁 Setup Instructions
 
-### 1. Clone the Repository
+### 
 ```bash
 git clone [https://github.com/Pooja-6666/campus_club_web.git](https://github.com/Pooja-6666/campus_club_web.git)
 cd campus_club_web

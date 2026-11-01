@@ -6,3 +6,10 @@ node_modules
 uploads
 venv/
 eng.traineddata
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local poster dataset
+event-poster-dataset/

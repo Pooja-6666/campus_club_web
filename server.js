@@ -407,9 +407,11 @@ app.post(
       const result = await ocrService.extractTextFromPoster(imagePath);
 
       res.json({
+        success: true,
         message: "Poster successfully parsed via OCR",
         extractedText: result.extractedText,
-        posterUrl: `/uploads/${req.file.filename}`
+        parsedFields: result.parsedFields,
+        posterUrl: '/uploads/${req.file.filename}'
       });
     } catch (error) {
       next(error);

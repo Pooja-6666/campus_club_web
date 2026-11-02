@@ -1,10 +1,11 @@
 const API_BASE_URL = "http://localhost:3000/api";
 
+// Get recommended events
 export const getRecommendedEvents = async () => {
   const token = localStorage.getItem("token");
 
   const response = await fetch(
-    `${API_BASE_URL}/events/recommended?limit=10`,
+    `${API_BASE_URL}/student/events/recommended?limit=10`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -19,18 +20,19 @@ export const getRecommendedEvents = async () => {
   return response.json();
 };
 
-
+// Add bookmark
 export const addBookmark = async (eventId) => {
   const token = localStorage.getItem("token");
 
-  const response = await fetch("http://localhost:3000/bookmark", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ event_id: Number(eventId) }),
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/student/bookmarks/${eventId}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Failed to bookmark event");
@@ -39,11 +41,12 @@ export const addBookmark = async (eventId) => {
   return response.json();
 };
 
+// Remove bookmark
 export const removeBookmark = async (eventId) => {
   const token = localStorage.getItem("token");
 
   const response = await fetch(
-    `http://localhost:3000/bookmark/${eventId}`,
+    `${API_BASE_URL}/student/bookmarks/${eventId}`,
     {
       method: "DELETE",
       headers: {
@@ -59,15 +62,18 @@ export const removeBookmark = async (eventId) => {
   return response.json();
 };
 
-
+// Get bookmarks
 export const getBookmarks = async () => {
   const token = localStorage.getItem("token");
 
-  const response = await fetch("http://localhost:3000/bookmarks", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/student/bookmarks`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Failed to load bookmarks");
@@ -76,8 +82,9 @@ export const getBookmarks = async () => {
   return response.json();
 };
 
+// Get all approved events
 export const getAllEvents = async () => {
-  const response = await fetch("http://localhost:3000/events");
+  const response = await fetch(`${API_BASE_URL}/events`);
 
   if (!response.ok) {
     throw new Error("Failed to load all events");
@@ -86,6 +93,7 @@ export const getAllEvents = async () => {
   return response.json();
 };
 
+// Get profile
 export const getProfile = async () => {
   const token = localStorage.getItem("token");
 
@@ -100,4 +108,4 @@ export const getProfile = async () => {
   }
 
   return response.json();
-};  
+};

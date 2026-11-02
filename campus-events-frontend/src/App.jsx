@@ -69,6 +69,7 @@ function App() {
   if (selectedRole === "student") {
     return (
       <Login
+        selectedRole={selectedRole}
         onLogin={handleLogin}
         onBack={() => setSelectedRole(null)}
       />
@@ -89,6 +90,7 @@ function App() {
   if (selectedRole === "faculty") {
     return (
       <Login
+        selectedRole={selectedRole}
         onLogin={handleLogin}
         onBack={() => setSelectedRole(null)}
       />

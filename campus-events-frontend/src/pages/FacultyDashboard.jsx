@@ -10,7 +10,7 @@ export default function FacultyDashboard({ user, onLogout }) {
   const fetchPendingEvents = async () => {
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:3000/events/pending", {
+      const res = await fetch("http://localhost:3000/api/faculty/events/pending", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -29,7 +29,7 @@ export default function FacultyDashboard({ user, onLogout }) {
 
   const handleAction = async (eventId, action) => {
     try {
-      const res = await fetch(`http://localhost:3000/events/${eventId}/${action}`, {
+      const res = await fetch(`http://localhost:3000/api/faculty/events/${eventId}/${action}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });

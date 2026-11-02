@@ -7,6 +7,7 @@ const upload = require("../middleware/upload.middleware");
 
 const {
   getOrganizerEvents,
+  parsePosterOcr,
 } = require("../controllers/organizer.controller");
 
 router.get(

@@ -164,6 +164,7 @@ const filteredEvents = events.filter((item) => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     window.location.reload();
   };
 

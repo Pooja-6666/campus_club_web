@@ -112,7 +112,7 @@ function CreateEvent() {
       uploadData.append("poster", file);
 
       const response = await fetch(
-        "http://localhost:3000/organizer/parse-poster",
+        "http://localhost:3000/api/organizer/parse-poster",
         {
           method: "POST",
           headers: {
@@ -222,7 +222,7 @@ function CreateEvent() {
       }
 
       const response = await fetch(
-        "http://localhost:3000/events",
+        "http://localhost:3000/api/organizer/events",
         {
           method: "POST",
           headers: {

@@ -18,6 +18,8 @@ model Student {
   rsvps         RSVP[]
   feedback      EventFeedback[]
   notInterested NotInterested[]
+
+  passwordResetOTP PasswordResetOTP?
 }
 
 model Organizer {
@@ -30,6 +32,8 @@ model Organizer {
   club    Club   @relation(fields: [club_id], references: [club_id])
 
   events Event[]
+
+  passwordResetOTP OrganizerPasswordResetOTP?
 }
 
 model Faculty {
@@ -40,6 +44,8 @@ model Faculty {
 
   club_id Int
   club    Club @relation(fields: [club_id], references: [club_id])
+
+  passwordResetOTP FacultyPasswordResetOTP?
 }
 
 model Admin {
@@ -171,4 +177,37 @@ model EventPromotion {
 
   event_id Int
   event    Event @relation(fields: [event_id], references: [event_id])
+}
+
+model PasswordResetOTP {
+  id        Int      @id @default(autoincrement())
+  student_id Int     @unique
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
+}
+
+model OrganizerPasswordResetOTP {
+  id        Int      @id @default(autoincrement())
+  org_id    Int      @unique
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  organizer Organizer @relation(fields: [org_id], references: [org_id], onDelete: Cascade)
+}
+
+model FacultyPasswordResetOTP {
+  id         Int      @id @default(autoincrement())
+  faculty_id Int      @unique
+  otpHash    String
+  expiresAt  DateTime
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  faculty Faculty @relation(fields: [faculty_id], references: [faculty_id], onDelete: Cascade)
 }

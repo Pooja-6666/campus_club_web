@@ -14,7 +14,7 @@ function OrganizerDashboard({ user, onLogout }) {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          "http://localhost:3000/organizer/events",
+          "http://localhost:3000/api/organizer/events",
           {
             headers: {
               Authorization: `Bearer ${token}`,

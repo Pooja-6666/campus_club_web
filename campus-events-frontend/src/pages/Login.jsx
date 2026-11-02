@@ -1,143 +1,269 @@
 import { useState } from "react";
 
-function Login({ onLogin, onBack }) {
-  // Step state: 'check' (email lookup), 'login' (password if exists), 'signup' (details if new)
-  const [step, setStep] = useState("check");
+function Login({ selectedRole, onLogin, onBack }) {
+  const [mode, setMode] = useState("login");
+
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState("student"); // default role for sign-up
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  // Step 1: Check if email exists in database
-  const handleCheckEmail = async (e) => {
-    e.preventDefault();
+  const roleName =
+    selectedRole === "faculty"
+      ? "Faculty"
+      : selectedRole === "organizer"
+      ? "Organizer"
+      : "Student";
+  console.log("Selected role:", selectedRole);
+  const resetMessages = () => {
     setError("");
     setMessage("");
-
-    if (!email.trim()) {
-      setError("Please enter your email address.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await fetch("http://localhost:3000/auth/check-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || "Failed to verify email");
-        return;
-      }
-
-      if (data.exists) {
-        setStep("login");
-        setMessage(`Welcome back! (${data.role} account detected)`);
-      } else {
-        setStep("signup");
-        setMessage("No account found. Please fill in your details to sign up.");
-      }
-    } catch (err) {
-      console.error(err);
-      setError("Unable to connect to server");
-    } finally {
-      setLoading(false);
-    }
   };
 
-  // Step 2A: Handle Login
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    resetMessages();
 
     try {
       setLoading(true);
-      // Determine endpoint based on email/role or route via student/organizer login
-      let loginUrl = "http://localhost:3000/student/login";
-      if (email.includes("organizer")) loginUrl = "http://localhost:3000/organizer/login";
-      else if (email.includes("faculty")) loginUrl = "http://localhost:3000/faculty/login";
 
-      const response = await fetch(loginUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await fetch(
+        `http://localhost:3000/api/auth/${selectedRole}/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Login failed");
+        setError(data.error || data.message || "Login failed");
+        return;
+      }
+
+      if (!data.token || !data.user) {
+        setError("Invalid login response from server.");
         return;
       }
 
       localStorage.setItem("token", data.token);
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-      }
+      localStorage.setItem("user", JSON.stringify(data.user));
+
       onLogin();
     } catch (err) {
       console.error(err);
-      setError("Unable to connect to server");
+      setError("Unable to connect to server.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 2B: Handle Signup (Account Creation)
-  const handleSignupSubmit = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
-    setError("");
+    resetMessages();
 
-    if (!name.trim() || !password.trim()) {
-      setError("Name and password are required");
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
 
     try {
       setLoading(true);
-      let signupUrl = "http://localhost:3000/student/signup";
-      let payload = { name, email, password };
 
-      if (role === "organizer") {
-        signupUrl = "http://localhost:3000/organizer/signup";
-        payload.club_id = 1; // Default club or let them choose if needed
-      } else if (role === "faculty") {
-        signupUrl = "http://localhost:3000/faculty/signup";
-        payload.club_id = 1;
-      }
-
-      const response = await fetch(signupUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        "http://localhost:3000/api/auth/student/signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            confirmPassword,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Sign up failed");
+        setError(data.error || data.message || "Signup failed");
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      if (data.user) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-      }
-      onLogin();
+      setMessage("Account created successfully! Please log in.");
+
+      setPassword("");
+      setConfirmPassword("");
+      setMode("login");
+
     } catch (err) {
       console.error(err);
-      setError("Unable to connect to server");
+      setError("Unable to connect to server.");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    resetMessages();
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `http://localhost:3000/api/auth/${selectedRole}/forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || data.message || "Unable to send OTP");
+        return;
+      }
+
+      setMessage(data.message || "OTP sent to your email.");
+      setMode("verify-otp");
+    } catch (err) {
+      console.error(err);
+      setError("Unable to connect to server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    resetMessages();
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `http://localhost:3000/api/auth/${selectedRole}/verify-otp`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, otp }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || data.message || "OTP verification failed");
+        return;
+      }
+
+      setMessage("OTP verified successfully.");
+      setMode("reset-password");
+    } catch (err) {
+      console.error(err);
+      setError("Unable to connect to server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    resetMessages();
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `http://localhost:3000/api/auth/${selectedRole}/reset-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            otp,
+            newPassword: password,
+            confirmPassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || data.message || "Password reset failed");
+        return;
+      }
+
+      setMessage(data.message || "Password reset successfully.");
+      setPassword("");
+      setConfirmPassword("");
+      setOtp("");
+      setMode("login");
+    } catch (err) {
+      console.error(err);
+      setError("Unable to connect to server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderInput = (
+    label,
+    id,
+    type,
+    value,
+    setter,
+    placeholder
+  ) => (
+    <div className="login-field">
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(e) => setter(e.target.value)}
+        placeholder={placeholder}
+        required
+      />
+    </div>
+  );
+
+  const renderSubmitButton = (text, loadingText) => (
+    <button
+      type="submit"
+      className="login-submit"
+      disabled={loading}
+    >
+      {loading ? loadingText : text}
+    </button>
+  );
 
   return (
     <div className="login-page">
@@ -154,137 +280,128 @@ function Login({ onLogin, onBack }) {
           Campus<span>Events</span>
         </div>
 
-        <div className="login-icon">
-          {step === "check" && "🔍"}
-          {step === "login" && "🎓"}
-          {step === "signup" && "✨"}
-        </div>
+        <div className="login-icon">🎓</div>
 
         <h2>
-          {step === "check" && "Sign In or Register"}
-          {step === "login" && "Welcome Back"}
-          {step === "signup" && "Create Account"}
+          {mode === "login" && `${roleName} Login`}
+          {mode === "signup" && "Student Signup"}
+          {mode === "forgot-password" && "Forgot Password"}
+          {mode === "verify-otp" && "Verify OTP"}
+          {mode === "reset-password" && "Reset Password"}
         </h2>
 
         <p className="login-subtitle">
-          {step === "check" && "Enter your email to check your account status."}
-          {step === "login" && `Logging in as ${email}`}
-          {step === "signup" && `Setting up account for ${email}`}
+          {mode === "login" && `Sign in to your ${roleName.toLowerCase()} account.`}
+          {mode === "signup" && "Create your student account."}
+          {mode === "forgot-password" && "Enter your registered email address."}
+          {mode === "verify-otp" && "Enter the 6-digit OTP sent to your email."}
+          {mode === "reset-password" && "Choose a new password for your account."}
         </p>
 
-        {/* STEP 1: CHECK EMAIL */}
-        {step === "check" && (
-          <form onSubmit={handleCheckEmail} className="login-form">
-            <div className="login-field">
-              <label htmlFor="user-email">Email address</label>
-              <input
-                id="user-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
-            </div>
+        {message && <p className="login-success">{message}</p>}
+        {error && <p className="login-error">{error}</p>}
 
-            {error && <p className="login-error">{error}</p>}
-            {message && <p className="login-subtitle" style={{ color: "#a855f7" }}>{message}</p>}
-
-            <button type="submit" className="login-submit" disabled={loading}>
-              {loading ? "Checking..." : "Continue →"}
-            </button>
-          </form>
-        )}
-
-        {/* STEP 2A: LOGIN (Password prompt) */}
-        {step === "login" && (
+        {mode === "login" && (
           <form onSubmit={handleLoginSubmit} className="login-form">
-            <div className="login-field">
-              <label htmlFor="user-password">Password</label>
-              <input
-                id="user-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-              />
-            </div>
+            {renderInput("Email address", "user-email", "email", email, setEmail, "you@example.com")}
+            {renderInput("Password", "user-password", "password", password, setPassword, "Enter your password")}
 
-            {error && <p className="login-error">{error}</p>}
-            {message && <p className="login-subtitle" style={{ color: "#a855f7" }}>{message}</p>}
-
-            <button type="submit" className="login-submit" disabled={loading}>
-              {loading ? "Signing in..." : "Login to your account →"}
-            </button>
+            {renderSubmitButton("Login →", "Signing in...")}
 
             <button
               type="button"
               className="back-button"
-              style={{ marginTop: "10px", width: "100%", textAlign: "center" }}
-              onClick={() => { setStep("check"); setError(""); setMessage(""); }}
+              onClick={() => {
+                resetMessages();
+                setMode("forgot-password");
+              }}
             >
-              ← Change Email
+              Forgot Password?
+            </button>
+
+            {selectedRole === "student" && (
+              <p>
+                Don't have an account?{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetMessages();
+                    setMode("signup");
+                  }}
+                >
+                  Sign up
+                </button>
+              </p>
+            )}
+          </form>
+        )}
+
+        {mode === "signup" && (
+          <form onSubmit={handleSignup} className="login-form">
+            {renderInput("Full name", "signup-name", "text", name, setName, "Enter your name")}
+            {renderInput("Email address", "signup-email", "email", email, setEmail, "you@example.com")}
+            {renderInput("Password", "signup-password", "password", password, setPassword, "At least 8 characters")}
+            {renderInput("Confirm password", "signup-confirm-password", "password", confirmPassword, setConfirmPassword, "Re-enter your password")}
+
+            {renderSubmitButton("Create Account", "Creating account...")}
+
+            <button
+              type="button"
+              className="back-button"
+              onClick={() => {
+                resetMessages();
+                setMode("login");
+              }}
+            >
+              Already have an account? Login
             </button>
           </form>
         )}
 
-        {/* STEP 2B: SIGNUP (Details prompt) */}
-        {step === "signup" && (
-          <form onSubmit={handleSignupSubmit} className="login-form">
-            <div className="login-field">
-              <label htmlFor="user-name">Full Name</label>
-              <input
-                id="user-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Alex Rivers"
-                required
-              />
-            </div>
+        {mode === "forgot-password" && (
+          <form onSubmit={handleForgotPassword} className="login-form">
+            {renderInput("Registered email", "forgot-email", "email", email, setEmail, "you@example.com")}
 
-            <div className="login-field">
-              <label htmlFor="new-password">Create Password</label>
-              <input
-                id="new-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
-                required
-              />
-            </div>
-
-            <div className="login-field">
-              <label htmlFor="user-role">Role</label>
-              <select
-                id="user-role"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                style={{ width: "100%", padding: "10px", borderRadius: "8px", background: "rgba(15, 23, 42, 0.6)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)" }}
-              >
-                <option value="student">Student</option>
-                <option value="organizer">Club Organizer</option>
-                <option value="faculty">Faculty Approver</option>
-              </select>
-            </div>
-
-            {error && <p className="login-error">{error}</p>}
-            {message && <p className="login-subtitle" style={{ color: "#a855f7" }}>{message}</p>}
-
-            <button type="submit" className="login-submit" disabled={loading}>
-              {loading ? "Creating account..." : "Complete Signup & Login →"}
-            </button>
+            {renderSubmitButton("Send OTP", "Sending OTP...")}
 
             <button
               type="button"
               className="back-button"
-              style={{ marginTop: "10px", width: "100%", textAlign: "center" }}
-              onClick={() => { setStep("check"); setError(""); setMessage(""); }}
+              onClick={() => {
+                resetMessages();
+                setMode("login");
+              }}
             >
-              ← Change Email
+              Back to Login
             </button>
+          </form>
+        )}
+
+        {mode === "verify-otp" && (
+          <form onSubmit={handleVerifyOTP} className="login-form">
+            {renderInput("6-digit OTP", "verify-otp", "text", otp, setOtp, "Enter OTP")}
+
+            {renderSubmitButton("Verify OTP", "Verifying...")}
+
+            <button
+              type="button"
+              className="back-button"
+              onClick={() => {
+                resetMessages();
+                setMode("forgot-password");
+              }}
+            >
+              Back
+            </button>
+          </form>
+        )}
+
+        {mode === "reset-password" && (
+          <form onSubmit={handleResetPassword} className="login-form">
+            {renderInput("New password", "new-password", "password", password, setPassword, "Enter new password")}
+            {renderInput("Confirm new password", "confirm-new-password", "password", confirmPassword, setConfirmPassword, "Confirm new password")}
+
+            {renderSubmitButton("Reset Password", "Resetting password...")}
           </form>
         )}
 

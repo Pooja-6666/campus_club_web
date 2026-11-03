@@ -2544,48 +2544,53 @@ body,
   padding: clamp(28px, 4vw, 48px);
 
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
-  grid-template-rows: auto auto auto 1fr;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto 1fr auto !important;
   column-gap: clamp(32px, 5vw, 64px);
+  row-gap: 12px;
+  align-items: center;
 }
 
-/* Icon on the left */
+/* Icon */
 .organizer-login-card .organizer-login-icon {
-  grid-column: 1 !important;
-  grid-row: 1 !important;
+  grid-column: 1;
+  grid-row: 1;
   font-size: 56px;
   text-align: left;
-  margin: 0 0 16px;
+  margin: 0;
 }
 
-/* Heading on the left */
+/* Heading */
 .organizer-login-card h1 {
-  grid-column: 1 !important;
-  grid-row: 2 !important;
+  grid-column: 1;
+  grid-row: 2;
   text-align: left !important;
   font-size: clamp(32px, 3vw, 42px);
   line-height: 1.2;
-  margin: 0 0 16px;
+  margin: 0;
 }
 
-/* Description on the left */
+/* Tagline */
 .organizer-login-card > p:not(.login-success):not(.organizer-login-error) {
-  grid-column: 1 !important;
-  grid-row: 3 !important;
+  grid-column: 1;
+  grid-row: 3;
   text-align: left !important;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.7;
   margin: 0;
-  max-width: 400px;
+  max-width: 420px;
+  align-self: start;
 }
 
-/* Form on the right */
+/* Login form */
 .organizer-login-card form {
-  grid-column: 2 !important;
-  grid-row: 1 / 5 !important;
+  grid-column: 2;
+  grid-row: 1 / 5;
+
   width: 100% !important;
-  min-width: 0 !important;
+  min-width: 0;
+  box-sizing: border-box;
+
   display: flex !important;
   flex-direction: column !important;
   gap: 16px;
@@ -2604,16 +2609,19 @@ body,
   box-sizing: border-box;
 }
 
-/* Feedback and footer */
-.organizer-login-card .organizer-login-error,
-.organizer-login-card .login-success,
-.organizer-login-footer {
-  grid-column: 1 / -1;
+/* Footer: CampusEvents — explicitly assigned its own row */
+.organizer-login-card .organizer-login-footer {
+  grid-column: 1 / -1 !important;
+  grid-row: 5 !important;
+  width: 100%;
+  text-align: center;
+  margin: 16px 0 0;
 }
 
-.organizer-login-footer {
-  margin-top: 20px;
-  text-align: center;
+/* Feedback messages */
+.organizer-login-card .organizer-login-error,
+.organizer-login-card .login-success {
+  grid-column: 1 / -1;
 }
 
 /* ===== TABLET AND MOBILE ===== */

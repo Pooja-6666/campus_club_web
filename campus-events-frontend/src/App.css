@@ -2006,6 +2006,28 @@ body,
   background: #412747;
 }
 
+/* Event Registration Button */
+.poster-modal-register {
+  display: block;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 16px;
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid #6d5a91;
+  border-radius: 11px;
+  background: #30283f;
+  color: #d8c7f0;
+  font-weight: 650;
+  transition: all 0.2s ease;
+}
+
+.poster-modal-register:hover {
+  background: #40334f;
+  border-color: #9580bb;
+  color: #f1e8ff;
+}
+
 @media (max-width: 480px) {
   .event-poster-bottom {
     flex-wrap: wrap;

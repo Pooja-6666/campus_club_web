@@ -14,6 +14,7 @@ function CreateEvent() {
     time: "",
     venue: "",
     contact_phone: "",
+    registrationUrl: "",
     club_id: "1",
     category: "Technology",
     tags: "AI, Hackathon",
@@ -204,6 +205,22 @@ function CreateEvent() {
       return;
     }
 
+    // Validate registration URL if provided
+    if (formData.registrationUrl.trim()) {
+      try {
+        const url = new URL(formData.registrationUrl.trim());
+
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+          throw new Error("Invalid protocol");
+        }
+      } catch {
+        setError(
+          "Please enter a valid registration URL starting with https:// or http://"
+        );
+        return;
+      }
+    }
+
     try {
       setLoading(true);
 
@@ -251,6 +268,7 @@ function CreateEvent() {
         time: "",
         venue: "",
         contact_phone: "",
+        registrationUrl: "",
         club_id: "1",
         category: "",
         tags: "",
@@ -651,6 +669,35 @@ function CreateEvent() {
                 onChange={handleChange}
                 style={inputStyle}
               />
+            </div>
+            {/* Registration Link */}
+
+            <div
+              style={{ gridColumn: "span 2" }}
+              className="form-group"
+            >
+              <label style={labelStyle}>
+                Registration Link (Optional)
+              </label>
+
+              <input
+                type="url"
+                name="registrationUrl"
+                value={formData.registrationUrl}
+                onChange={handleChange}
+                placeholder="https://forms.google.com/..."
+                style={inputStyle}
+              />
+
+              <small
+                style={{
+                  color: "#94a3b8",
+                  display: "block",
+                  marginTop: "6px",
+                }}
+              >
+                Add a Google Form or external event registration page.
+              </small>
             </div>
 
             {/* Category */}

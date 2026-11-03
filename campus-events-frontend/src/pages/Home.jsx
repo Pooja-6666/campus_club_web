@@ -93,13 +93,27 @@ const filteredEvents = events.filter((item) => {
   const event = item.event || item;
   const filters = appliedFilters;
 
-  // Search by event title or description
+  // Search by title, description, tags, category, club name, and venue
   const search = filters.searchText.trim().toLowerCase();
+
+  const searchableFields = [
+    event.title,
+    event.description,
+    event.category,
+    event.venue,
+    event.club?.club_name,
+    ...(Array.isArray(event.tags)
+      ? event.tags
+      : typeof event.tags === "string"
+        ? event.tags.split(",")
+        : []),
+  ];
 
   const matchesSearch =
     !search ||
-    (event.title || "").toLowerCase().includes(search) ||
-    (event.description || "").toLowerCase().includes(search);
+    searchableFields.some((field) =>
+      String(field || "").toLowerCase().includes(search)
+    );
 
   // Filter by category
   const matchesCategory =

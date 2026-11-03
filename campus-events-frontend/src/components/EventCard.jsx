@@ -7,6 +7,19 @@ function EventCard({
   showBookmark = true,
 }) {
   const event = item.event || item;
+
+  const registrationUrl = event.registrationUrl?.trim();
+
+  const isValidRegistrationUrl = (() => {
+    if (!registrationUrl) return false;
+
+    try {
+      const url = new URL(registrationUrl);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  })();
   
   const rawPosterUrl = event.posterUrl || "/event-posters/default-event.png";
   const posterUrl = rawPosterUrl.startsWith("http")
@@ -184,6 +197,22 @@ function EventCard({
                     <p>🏫 <strong>Club:</strong> {event.club.club_name}</p>
                   )}
                 </div>
+
+                {/* Event Registration */}
+                {isValidRegistrationUrl ? (
+                  <a
+                    href={registrationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="poster-modal-register"
+                  >
+                    Register Now ↗
+                  </a>
+                ) : (
+                  <p className="registration-unavailable">
+                    Registration link is not available for this event.
+                  </p>
+                )}
 
                 {showBookmark && (
                   <button

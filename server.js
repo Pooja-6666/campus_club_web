@@ -555,6 +555,7 @@ app.post(
         tags,
         capacity,
         endDate,
+        registrationUrl,
       } = req.body;
 
       if (!title || !description || !date || !venue || !club_id) {
@@ -572,6 +573,7 @@ app.post(
           time,
           venue,
           contact_phone: contact_phone || null, // 👈 Captured phone number
+          registrationUrl: registrationUrl?.trim() || null,
           club_id: Number(club_id),
           category: category || null,
           tags:

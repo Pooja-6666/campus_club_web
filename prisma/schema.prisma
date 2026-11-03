@@ -79,6 +79,7 @@ model Event {
   time          String?
   venue         String
   contact_phone String?
+  registrationUrl String?
   status        String          @default("PENDING")
   category      String?
   tags          String[]        @default([])

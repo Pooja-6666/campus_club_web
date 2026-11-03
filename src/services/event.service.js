@@ -25,6 +25,7 @@ const getEventById = async (eventId) => {
     },
   });
 };
+
 module.exports = {
   getApprovedEvents,
   getEventById,

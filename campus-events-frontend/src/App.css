@@ -2716,3 +2716,377 @@ body,
     margin-bottom: 12px;
   }
 }
+
+/* =========================================
+   STUDENT INTEREST ONBOARDING
+========================================= */
+
+.interest-onboarding-page {
+  height: 100vh;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 20px 4%;
+  color: #f8f5ff;
+
+  background:
+    radial-gradient(ellipse at 80% 0%, #382044 0%, transparent 35%),
+    radial-gradient(ellipse at 15% 70%, #25143b 0%, transparent 45%),
+    linear-gradient(135deg, #100b1d, #1b1028 60%, #120b20);
+
+  position: relative;
+  overflow: hidden;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.interest-onboarding-page::before {
+  content: "";
+  position: absolute;
+  top: -180px;
+  right: -100px;
+  width: 650px;
+  height: 350px;
+  background: linear-gradient(120deg, transparent, rgba(249, 115, 22, 0.13));
+  border-radius: 50%;
+  transform: rotate(-20deg);
+  pointer-events: none;
+}
+
+/* Main layout */
+
+.interest-onboarding-main {
+  width: 100%;
+  max-width: 1350px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.interest-onboarding-heading {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.interest-onboarding-heading h1 {
+  font-size: clamp(30px, 3vw, 42px);
+  font-weight: 750;
+  margin: 0;
+  color: #d9c5f0;
+}
+
+.interest-onboarding-heading h1 span {
+  color: #f58232;
+}
+
+.heading-underline {
+  width: 52px;
+  height: 4px;
+  background: #f58232;
+  border-radius: 5px;
+  margin: 18px auto;
+}
+
+.interest-onboarding-heading p {
+  color: #d5c6e4;
+  font-size: 19px;
+  margin: 0;
+}
+
+/* Interest selection panel */
+
+.interest-onboarding-card {
+  width: 100%;
+  padding: 20px 30px 25px;
+  box-sizing: border-box;
+  border: 1px solid rgba(174, 112, 210, 0.25);
+  border-radius: 23px;
+  background: linear-gradient(
+    145deg,
+    rgba(49, 32, 62, 0.72),
+    rgba(30, 19, 43, 0.75)
+  );
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.15),
+    inset 0 1px 1px rgba(255, 255, 255, 0.04);
+}
+
+.interest-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.interest-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.interest-panel-title h2 {
+  font-size: 25px;
+  margin: 0;
+  font-weight: 650;
+}
+
+.interest-panel-icon {
+  color: #f58232;
+  font-size: 38px;
+}
+
+.interest-hint {
+  padding: 9px 18px;
+  border-radius: 30px;
+  background: rgba(164, 98, 185, 0.2);
+  color: #d9c3e8;
+  font-size: 14px;
+}
+
+/* Interest cards */
+
+.interest-onboarding-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+}
+
+.interest-onboarding-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  width: 180px;
+  min-height: 110px;
+  box-sizing: border-box;
+  padding: 15px;
+
+  border: 1px solid rgba(151, 105, 184, 0.35);
+  border-radius: 17px;
+  background: linear-gradient(
+    145deg,
+    rgba(42, 29, 53, 0.9),
+    rgba(34, 24, 44, 0.9)
+  );
+
+  color: #f5efff;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.interest-onboarding-option:hover {
+  transform: translateY(-3px);
+  border-color: #a76bd0;
+  background: rgba(72, 43, 89, 0.65);
+}
+
+.interest-onboarding-option.selected {
+  border-color: #f58232;
+  background: rgba(102, 54, 91, 0.4);
+  box-shadow: 0 0 16px rgba(245, 130, 50, 0.12);
+}
+
+.interest-onboarding-option input {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 18px;
+  height: 18px;
+  accent-color: #f58232;
+  cursor: pointer;
+}
+
+.interest-option-icon {
+  font-size: 31px;
+  font-weight: 700;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.interest-option-icon.purple {
+  color: #a58aff;
+}
+
+.interest-option-icon.pink {
+  color: #d77bda;
+}
+
+.interest-option-icon.orange {
+  color: #ff9a42;
+}
+
+.interest-option-name {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Error */
+
+.interest-onboarding-error {
+  color: #ff8585;
+  text-align: center;
+  margin-top: 20px;
+}
+
+/* Buttons */
+
+.interest-onboarding-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 25px;
+  margin-top: 45px;
+}
+
+.interest-onboarding-actions button {
+  min-width: 255px;
+  padding: 17px 28px;
+  border-radius: 40px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+/* Keep existing Save Preferences color */
+
+.interest-onboarding-actions button:first-child {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+
+  color: white;
+  background: linear-gradient(135deg, #9333ea, #f97316);
+  border: none;
+  border-radius: 40px;
+  padding: 17px 28px;
+  min-width: 255px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.interest-onboarding-actions button:first-child:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.3);
+}
+
+.interest-onboarding-actions .interest-onboarding-skip {
+  color: #e0cbea;
+  background: transparent;
+  border: 2px solid #a77bc2;
+}
+
+.interest-onboarding-actions .interest-onboarding-skip:hover {
+  background: rgba(167, 123, 194, 0.12);
+}
+
+.interest-onboarding-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+/* Responsive */
+
+@media (max-width: 900px) {
+  .interest-onboarding-options {
+    gap: 12px;
+  }
+
+  .interest-onboarding-option {
+    width: 145px;
+    min-height: 85px;
+  }
+
+  .interest-onboarding-card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .interest-onboarding-page {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+    padding: 20px;
+  }
+
+  .interest-onboarding-heading {
+    margin-bottom: 25px;
+  }
+
+  .interest-onboarding-heading h1 {
+    font-size: 28px;
+  }
+
+  .interest-onboarding-heading p {
+    font-size: 15px;
+  }
+
+  .interest-panel-title h2 {
+    font-size: 19px;
+  }
+
+  .interest-hint {
+    display: none;
+  }
+
+  .interest-onboarding-option {
+    width: calc(50% - 10px);
+    min-height: 90px;
+  }
+
+  .interest-onboarding-actions {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .interest-onboarding-actions button {
+    width: 100%;
+  }
+}
+
+/* Fit the onboarding on shorter desktop screens */
+
+@media (max-height: 800px) and (min-width: 601px) {
+  .interest-onboarding-heading {
+    margin-bottom: 15px;
+  }
+
+  .interest-onboarding-heading h1 {
+    font-size: 36px;
+  }
+
+  .interest-onboarding-heading p {
+    font-size: 16px;
+  }
+
+  .heading-underline {
+    margin: 10px auto;
+  }
+
+  .interest-onboarding-card {
+    padding: 15px 25px;
+  }
+
+  .interest-panel-heading {
+    margin-bottom: 15px;
+  }
+
+  .interest-onboarding-option {
+    min-height: 75px;
+  }
+
+  .interest-onboarding-actions {
+    margin-top: 15px;
+  }
+}

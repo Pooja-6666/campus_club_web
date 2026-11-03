@@ -1,5 +1,7 @@
 import "./App.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import InterestOnboarding from "./pages/InterestOnboarding";
+import { getProfile } from "./services/api";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import RoleSelection from "./pages/RoleSelection";
@@ -24,6 +26,8 @@ function App() {
   });
 
   const [selectedRole, setSelectedRole] = useState(null);
+  const [interestStatus, setInterestStatus] = useState("checking");
+  const [profileError, setProfileError] = useState("");
 
   const handleLogin = () => {
     const storedUser = localStorage.getItem("user");
@@ -38,8 +42,49 @@ function App() {
     localStorage.removeItem("user");
     setUser(null);
     setSelectedRole(null);
+    setInterestStatus("checking");
   };
 
+  useEffect(() => {
+    if (!user || user.role !== "STUDENT") {
+      return;
+    }
+
+    let cancelled = false;
+
+    const checkStudentInterests = async () => {
+      setInterestStatus("checking");
+      setProfileError("");
+
+      try {
+        const profile = await getProfile();
+
+        if (cancelled) return;
+
+        if (
+          !Array.isArray(profile.interests) ||
+          profile.interests.length === 0
+        ) {
+          setInterestStatus("required");
+        } else {
+          setInterestStatus("complete");
+        }
+      } catch (error) {
+        console.error("Failed to check student interests:", error);
+
+        if (!cancelled) {
+          setProfileError("Unable to load your profile. Please try again.");
+          setInterestStatus("error");
+        }
+      }
+    };
+
+    checkStudentInterests();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
   // ==============================
   // 🔐 ROLE-BASED DASHBOARD ROUTING
   // ==============================
@@ -53,6 +98,34 @@ function App() {
     }
 
     if (user.role === "STUDENT") {
+      if (interestStatus === "checking") {
+        return <div>Loading your profile...</div>;
+      }
+
+      if (interestStatus === "error") {
+        return (
+          <div>
+            <p>{profileError}</p>
+            <button
+              onClick={() => {
+                setInterestStatus("checking");
+                setUser({ ...user });
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        );
+      }
+
+      if (interestStatus === "required") {
+        return (
+          <InterestOnboarding
+            onComplete={() => setInterestStatus("complete")}
+          />
+        );
+      }
+
       return <Home />;
     }
 

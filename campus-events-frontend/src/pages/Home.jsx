@@ -5,6 +5,7 @@ import {
   getProfile,
   updateStudentInterests,
 } from "../services/api";
+import Chatbot from "../components/Chatbot";
 import { useEffect, useState } from "react";
 import EventCard from "../components/EventCard";
 import {
@@ -704,6 +705,8 @@ const filteredEvents = events.filter((item) => {
           </main>
         </div>
       </div>
+      {/* Chatbot */}
+      <Chatbot />
     </div>
   );
 }

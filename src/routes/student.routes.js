@@ -1,47 +1,36 @@
-
 const express = require("express");
 const router = express.Router();
 
+const studentController = require("../controllers/student.controller");
 const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 
-const {
-  getRecommendations,
-  getBookmarks,
-  addBookmark,
-  removeBookmark,
-} = require("../controllers/student.controller");
+// All routes require student authentication
+router.use(authenticate);
+router.use(authorize("STUDENT"));
 
-// Personalized event recommendations
+// Student profile
+router.get("/profile", studentController.getProfile);
+router.patch(
+  "/profile/interests",
+  studentController.updateInterests
+);
+
+// Personalized recommendations
 router.get(
   "/events/recommended",
-  authenticate,
-  authorize("STUDENT"),
-  getRecommendations
+  studentController.getRecommendations
 );
 
-// Get the logged-in student's bookmarks
-router.get(
-  "/bookmarks",
-  authenticate,
-  authorize("STUDENT"),
-  getBookmarks
-);
-
-// Bookmark an event
+// Bookmarks
+router.get("/bookmarks", studentController.getBookmarks);
 router.post(
   "/bookmarks/:eventId",
-  authenticate,
-  authorize("STUDENT"),
-  addBookmark
+  studentController.addBookmark
 );
-
-// Remove a bookmark
 router.delete(
   "/bookmarks/:eventId",
-  authenticate,
-  authorize("STUDENT"),
-  removeBookmark
+  studentController.removeBookmark
 );
 
 module.exports = router;

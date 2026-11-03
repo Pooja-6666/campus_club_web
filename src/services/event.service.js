@@ -15,16 +15,16 @@ const getApprovedEvents = async () => {
 };
 
 const getEventById = async (eventId) => {
-  return prisma.event.findUnique({
+  return prisma.event.findFirst({
     where: {
       event_id: eventId,
+      status: "APPROVED",
     },
     include: {
       club: true,
     },
   });
 };
-
 module.exports = {
   getApprovedEvents,
   getEventById,

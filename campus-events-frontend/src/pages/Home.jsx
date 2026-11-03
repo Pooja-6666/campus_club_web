@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
 import {
   getRecommendedEvents,
   getBookmarks,
   getAllEvents,
   getProfile,
+  updateStudentInterests,
 } from "../services/api";
+import { useEffect, useState } from "react";
 import EventCard from "../components/EventCard";
 import {
   House,
@@ -26,7 +27,9 @@ function Home() {
   const [error, setError] = useState("");
   const [profile, setProfile] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-
+  const [interestDraft, setInterestDraft] = useState([]);
+  const [interestSaving, setInterestSaving] = useState(false);
+  const [interestMessage, setInterestMessage] = useState("");
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedDate, setSelectedDate] = useState("");
@@ -250,10 +253,15 @@ const filteredEvents = events.filter((item) => {
     setActivePage("profile");
     setLoading(true);
     setError("");
+    setInterestMessage("");
 
     try {
       const data = await getProfile();
+
       setProfile(data);
+      setInterestDraft(
+        Array.isArray(data.interests) ? data.interests : []
+      );
     } catch (err) {
       console.error(err);
       setError("Unable to load profile");
@@ -262,6 +270,46 @@ const filteredEvents = events.filter((item) => {
     }
   };
 
+  const availableInterests = [
+    "Technology",
+    "AI",
+    "Coding",
+    "Competitions",
+    "Cultural",
+    "Music",
+    "Dance",
+    "Sports",
+    "Astronomy",
+    "Entrepreneurship",
+    "Workshop",
+    "Social",
+  ];
+
+  const handleInterestToggle = (interest) => {
+    setInterestDraft((previous) =>
+      previous.includes(interest)
+        ? previous.filter((item) => item !== interest)
+        : [...previous, interest]
+    );
+  };
+
+  const handleSaveInterests = async () => {
+    setInterestSaving(true);
+    setInterestMessage("");
+
+    try {
+      const result = await updateStudentInterests(interestDraft);
+
+      setProfile(result.profile);
+      setInterestDraft(result.profile.interests || []);
+      setInterestMessage("Interests updated successfully!");
+    } catch (err) {
+      console.error(err);
+      setInterestMessage("Failed to update interests. Please try again.");
+    } finally {
+      setInterestSaving(false);
+    }
+  };
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -605,15 +653,35 @@ const filteredEvents = events.filter((item) => {
                     <span>Email Address</span>
                     <p>{profile.email}</p>
                   </div>
-
                   <div className="profile-detail">
                     <span>Interests</span>
-                    <p>
-                      {Array.isArray(profile.interests) &&
-                      profile.interests.length > 0
-                        ? profile.interests.join(", ")
-                        : "No interests added yet"}
-                    </p>
+
+                    <p>Select your interests to personalize recommendations:</p>
+
+                    <div className="interest-options">
+                      {availableInterests.map((interest) => (
+                        <label key={interest} className="interest-option">
+                          <input
+                            type="checkbox"
+                            checked={interestDraft.includes(interest)}
+                            onChange={() => handleInterestToggle(interest)}
+                          />
+                          {interest}
+                        </label>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveInterests}
+                      disabled={interestSaving}
+                    >
+                      {interestSaving ? "Saving..." : "Save Interests"}
+                    </button>
+
+                    {interestMessage && (
+                      <p role="status">{interestMessage}</p>
+                    )}
                   </div>
                 </div>
               </section>

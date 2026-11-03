@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://localhost:3000/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 // Get recommended events
 export const getRecommendedEvents = async () => {
@@ -93,18 +94,44 @@ export const getAllEvents = async () => {
   return response.json();
 };
 
-// Get profile
+// Get student profile
 export const getProfile = async () => {
   const token = localStorage.getItem("token");
 
-  const response = await fetch(`${API_BASE_URL}/profile`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/student/profile`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   if (!response.ok) {
     throw new Error("Failed to load profile");
+  }
+
+  return response.json();
+};
+
+// Update student interests
+export const updateStudentInterests = async (interests) => {
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/student/profile/interests`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ interests }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to update interests");
   }
 
   return response.json();

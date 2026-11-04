@@ -8,21 +8,18 @@ const upload = require("../middleware/upload.middleware");
 const {
   getOrganizerEvents,
   parsePosterOcr,
+  createOrganizerEvent,
 } = require("../controllers/organizer.controller");
 
-router.get(
-  "/events",
-  authenticate,
-  authorize("ORGANIZER"),
-  getOrganizerEvents
-);
-// POST: Parse uploaded poster via OCR
-router.post(
-  "/parse-poster",
-  authenticate,
-  authorize("ORGANIZER"),
-  upload.single("poster"), // Expects file field name "poster"
-  parsePosterOcr
-);
+router.use(authenticate);
+router.use(authorize("ORGANIZER"));
+
+router.get("/events", getOrganizerEvents);
+
+// OCR: receives poster image and returns extracted fields to the frontend.
+router.post("/parse-poster", upload.single("poster"), parsePosterOcr);
+
+// Event creation: receives editable form data and optional poster file.
+router.post("/events", upload.single("poster"), createOrganizerEvent);
 
 module.exports = router;

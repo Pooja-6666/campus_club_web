@@ -52,6 +52,7 @@ function OrganizerDashboard({ user, onLogout }) {
   if (showCreateForm) {
     return (
       <div className="organizer-dashboard">
+        
         <header className="organizer-dashboard-header">
           <div>
             <h1>Campus<span>Events</span></h1>
@@ -84,6 +85,60 @@ function OrganizerDashboard({ user, onLogout }) {
 
   return (
     <div className="organizer-dashboard">
+      <style>{`
+                /* Expand organizer dashboard on larger screens */
+                .organizer-dashboard .organizer-dashboard-main {
+                  width: min(1200px, calc(100% - 48px));
+                  max-width: 1200px;
+                  margin: 0 auto;
+                  box-sizing: border-box;
+                }
+
+                /* Responsive event grid */
+                .organizer-dashboard .events-grid {
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                  align-items: start;
+                  gap: 24px;
+                }
+
+                /* Prevent cards from stretching */
+                .organizer-dashboard .organizer-event-wrapper {
+                  display: flex;
+                  flex-direction: column;
+                  align-self: start;
+                  min-width: 0;
+                  height: auto;
+                }
+
+                /* Override any fixed card height without affecting student cards */
+                .organizer-dashboard .organizer-event-wrapper .event-card {
+                  height: auto;
+                  min-height: 0;
+                  flex: 0 0 auto;
+                  align-self: stretch;
+                }
+
+                .organizer-dashboard .organizer-event-status {
+                  display: flex;
+                  flex-wrap: wrap;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 10px;
+                  margin-top: 12px;
+                }
+
+                @media (max-width: 600px) {
+                  .organizer-dashboard .organizer-dashboard-main {
+                    width: calc(100% - 24px);
+                  }
+
+                  .organizer-dashboard .events-grid {
+                    grid-template-columns: 1fr;
+                  }
+                }
+              `}</style>
+
       <header className="organizer-dashboard-header">
         <div>
           <h1>Campus<span>Events</span></h1>
@@ -132,8 +187,12 @@ function OrganizerDashboard({ user, onLogout }) {
 
           {!loading && !error && events.length > 0 && (
             <div className="events-grid" aria-label="My events">
+
               {events.map((event) => (
-                <div className="organizer-event-wrapper" key={event.event_id}>
+              <div
+                className="organizer-event-wrapper"
+                key={event.event_id}
+              >
                   <EventCard
                     item={{
                       ...event,
@@ -163,6 +222,41 @@ function OrganizerDashboard({ user, onLogout }) {
                       </button>
                     )}
                   </div>
+                  {event.status === "REJECTED" && event.rejectionReason && (
+                    <div
+                      style={{
+                        marginTop: "12px",
+                        padding: "14px",
+                        background: "rgba(239, 68, 68, 0.08)",
+                        border: "1px solid rgba(239, 68, 68, 0.25)",
+                        borderRadius: "10px",
+                      }}
+                    >
+                      <h4
+                        style={{
+                          margin: "0 0 8px",
+                          color: "#ef4444",
+                          fontSize: "14px",
+                        }}
+                      >
+                        Faculty Feedback / Rejection Reason
+                      </h4>
+
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "#cbd5e1",
+                          fontSize: "14px",
+                          lineHeight: "1.6",
+                          whiteSpace: "pre-wrap",
+                          overflowWrap: "anywhere",
+                        }}
+                      >
+                        {event.rejectionReason}
+                      </p>
+                    </div>
+                  )}
+
                 </div>
               ))}
             </div>

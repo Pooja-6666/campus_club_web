@@ -1,3 +1,4 @@
+
 const prisma = require("../config/prisma");
 
 const getPendingEvents = async () => {
@@ -36,11 +37,12 @@ const approveEvent = async (eventId) => {
     },
     data: {
       status: "APPROVED",
+      rejectionReason: null,
     },
   });
 };
 
-const rejectEvent = async (eventId) => {
+const rejectEvent = async (eventId, rejectionReason) => {
   const event = await prisma.event.findUnique({
     where: {
       event_id: eventId,
@@ -55,12 +57,17 @@ const rejectEvent = async (eventId) => {
     throw new Error("Only pending events can be rejected");
   }
 
+  if (!rejectionReason || !rejectionReason.trim()) {
+    throw new Error("Rejection reason is required");
+  }
+
   return prisma.event.update({
     where: {
       event_id: eventId,
     },
     data: {
       status: "REJECTED",
+      rejectionReason: rejectionReason.trim(),
     },
   });
 };

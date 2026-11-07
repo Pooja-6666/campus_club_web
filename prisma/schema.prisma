@@ -81,6 +81,7 @@ model Event {
   contact_phone String?
   registrationUrl String?
   status        String          @default("PENDING")
+  rejectionReason String?
   category      String?
   tags          String[]        @default([])
   capacity      Int?

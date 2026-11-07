@@ -1,3 +1,4 @@
+
 const facultyService = require("../services/faculty.service");
 
 const getPendingEvents = async (req, res, next) => {
@@ -38,7 +39,21 @@ const rejectEvent = async (req, res, next) => {
       });
     }
 
-    const event = await facultyService.rejectEvent(eventId);
+    const { rejectionReason } = req.body;
+
+    if (
+      typeof rejectionReason !== "string" ||
+      !rejectionReason.trim()
+    ) {
+      return res.status(400).json({
+        error: "Please provide a rejection reason",
+      });
+    }
+
+    const event = await facultyService.rejectEvent(
+      eventId,
+      rejectionReason
+    );
 
     res.json(event);
   } catch (error) {

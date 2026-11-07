@@ -9,6 +9,7 @@ const {
   getOrganizerEvents,
   parsePosterOcr,
   createOrganizerEvent,
+  updateRejectedOrganizerEvent,
 } = require("../controllers/organizer.controller");
 
 router.use(authenticate);
@@ -21,5 +22,8 @@ router.post("/parse-poster", upload.single("poster"), parsePosterOcr);
 
 // Event creation: receives editable form data and optional poster file.
 router.post("/events", upload.single("poster"), createOrganizerEvent);
+
+// Edit a rejected event and resubmit it for faculty approval.
+router.patch("/events/:id", upload.single("poster"), updateRejectedOrganizerEvent);
 
 module.exports = router;

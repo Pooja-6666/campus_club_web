@@ -73,7 +73,80 @@ const createEvent = async (organizerId, body, posterFile) => {
   });
 };
 
+
+const updateRejectedEvent = async (organizerId, eventId, body, posterFile) => {
+  // Ownership and status are checked together to prevent editing another organizer's event.
+  const existing = await prisma.event.findFirst({
+    where: {
+      event_id: eventId,
+      created_by: organizerId,
+      status: "REJECTED",
+    },
+  });
+
+  if (!existing) {
+    const error = new Error("Rejected event not found or you do not have permission to edit it");
+    error.status = 404;
+    throw error;
+  }
+
+  const capacity = body.capacity ? Number(body.capacity) : null;
+  if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1)) {
+    const error = new Error("Capacity must be a positive whole number");
+    error.status = 400;
+    throw error;
+  }
+
+  const date = new Date(`${body.date}T00:00:00.000Z`);
+  const endDate = body.endDate
+    ? new Date(`${body.endDate}T00:00:00.000Z`)
+    : null;
+
+  if (Number.isNaN(date.getTime()) || (endDate && Number.isNaN(endDate.getTime()))) {
+    const error = new Error("Invalid event date");
+    error.status = 400;
+    throw error;
+  }
+
+  if (endDate && endDate < date) {
+    const error = new Error("End date cannot be before start date");
+    error.status = 400;
+    throw error;
+  }
+
+  const tags = String(body.tags || "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+  return prisma.event.update({
+    where: { event_id: eventId },
+    data: {
+      title: String(body.title).trim(),
+      description: String(body.description).trim(),
+      date,
+      endDate,
+      time: body.time ? String(body.time).trim() : null,
+      venue: String(body.venue).trim(),
+      contact_phone: body.contact_phone ? String(body.contact_phone).trim() : null,
+      registrationUrl: body.registrationUrl ? String(body.registrationUrl).trim() : null,
+      category: body.category ? String(body.category).trim() : null,
+      tags,
+      capacity,
+      posterUrl: posterFile
+        ? `/uploads/${posterFile.filename}`
+        : body.removePoster === "true"
+        ? null
+        : existing.posterUrl,
+      extractedText: body.extractedText ? String(body.extractedText) : existing.extractedText,
+      status: "PENDING",
+    },
+    include: { club: true },
+  });
+};
+
 module.exports = {
   getOrganizerEvents,
   createEvent,
+  updateRejectedEvent,
 };

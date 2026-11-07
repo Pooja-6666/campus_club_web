@@ -6,7 +6,8 @@ function OrganizerDashboard({ user, onLogout }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showCreateForm, setShowCreateForm] = useState(false); // <-- Toggle state for form
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -58,7 +59,10 @@ function OrganizerDashboard({ user, onLogout }) {
           </div>
 
           <button
-            onClick={() => setShowCreateForm(false)}
+            onClick={() => {
+              setShowCreateForm(false);
+              setEditingEvent(null);
+            }}
             className="organizer-logout-button"
           >
             ← Back to Dashboard
@@ -66,7 +70,13 @@ function OrganizerDashboard({ user, onLogout }) {
         </header>
 
         <main className="organizer-dashboard-main">
-          <CreateEvent />
+          <CreateEvent
+            eventToEdit={editingEvent}
+            onSuccess={() => {
+              setShowCreateForm(false);
+              setEditingEvent(null);
+            }}
+          />
         </main>
       </div>
     );
@@ -140,6 +150,18 @@ function OrganizerDashboard({ user, onLogout }) {
                     >
                       Status: {event.status || "PENDING"}
                     </span>
+                    {event.status === "REJECTED" && (
+                      <button
+                        type="button"
+                        className="organizer-create-button"
+                        onClick={() => {
+                          setEditingEvent(event);
+                          setShowCreateForm(true);
+                        }}
+                      >
+                        Edit & Resubmit
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

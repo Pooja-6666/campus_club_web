@@ -1,26 +1,41 @@
 
 import { useState } from "react";
 
-function CreateEvent() {
+const toDateInput = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+};
+
+function CreateEvent({ eventToEdit = null, onSuccess }) {
+  const isEditing = Boolean(eventToEdit);
   const [poster, setPoster] = useState(null);
-  const [preview, setPreview] = useState("");
+  const [preview, setPreview] = useState(
+    eventToEdit?.posterUrl
+      ? `http://localhost:3000${eventToEdit.posterUrl}`
+      : ""
+  );
   const [loadingOcr, setLoadingOcr] = useState(false);
   const [extractedText, setExtractedText] = useState("");
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    date: "",
-    time: "",
-    venue: "",
-    contact_phone: "",
-    registrationUrl: "",
-    club_id: "1",
-    category: "Technology",
-    tags: "AI, Hackathon",
-    capacity: "100",
-    endDate: "",
-  });
+  const [formData, setFormData] = useState(() => ({
+    title: eventToEdit?.title || "",
+    description: eventToEdit?.description || "",
+    date: toDateInput(eventToEdit?.date),
+    time: eventToEdit?.time || "",
+    venue: eventToEdit?.venue || "",
+    contact_phone: eventToEdit?.contact_phone || "",
+    registrationUrl: eventToEdit?.registrationUrl || "",
+    club_id: String(eventToEdit?.club_id || "1"),
+    category: eventToEdit?.category || "Technology",
+    tags: Array.isArray(eventToEdit?.tags) ? eventToEdit.tags.join(", ") : (eventToEdit?.tags || "AI, Hackathon"),
+    capacity: eventToEdit?.capacity != null ? String(eventToEdit.capacity) : "100",
+    endDate: toDateInput(eventToEdit?.endDate),
+  }));
+
+  // Keep the existing poster visible while editing; uploading a new file replaces it.
+  const [existingPosterUrl] = useState(eventToEdit?.posterUrl || "");
+  const [posterChanged, setPosterChanged] = useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -45,6 +60,11 @@ function CreateEvent() {
     // Already in HTML date format
     if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
       return text;
+    }
+    // Convert DD-MM-YYYY to YYYY-MM-DD
+    if (/^\d{2}-\d{2}-\d{4}$/.test(text)) {
+      const [day, month, year] = text.split("-");
+      return `${year}-${month}-${day}`;
     }
 
     // Remove ordinal suffixes: 23rd -> 23
@@ -101,6 +121,7 @@ function CreateEvent() {
     setError("");
     setMessage("");
     setPoster(file);
+    setPosterChanged(true);
 
     setPreview(URL.createObjectURL(file));
 
@@ -230,18 +251,27 @@ function CreateEvent() {
 
       Object.keys(formData).forEach((key) => {
         if (formData[key] !== "") {
-          data.append(key, formData[key]);
+          if (key === "date" || key === "endDate") {
+            data.append(key, convertToDateInput(formData[key]));
+          } else {
+            data.append(key, formData[key]);
+          }
         }
       });
 
       if (poster) {
         data.append("poster", poster);
       }
+      if (isEditing && posterChanged && !poster) {
+        data.append("removePoster", "true");
+      }
 
-      const response = await fetch(
-        "http://localhost:3000/api/organizer/events",
-        {
-          method: "POST",
+      const endpoint = isEditing
+        ? `http://localhost:3000/api/organizer/events/${eventToEdit.event_id}`
+        : "http://localhost:3000/api/organizer/events";
+
+      const response = await fetch(endpoint, {
+          method: isEditing ? "PATCH" : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -258,8 +288,15 @@ function CreateEvent() {
       }
 
       setMessage(
-        "✨ Event submitted successfully! Pending faculty approval."
+        isEditing
+          ? "Event updated and resubmitted successfully! Pending faculty approval."
+          : "✨ Event submitted successfully! Pending faculty approval."
       );
+
+      if (isEditing && onSuccess) {
+        // Return to dashboard after the update; dashboard refreshes its event list.
+        onSuccess();
+      }
 
       setFormData({
         title: "",
@@ -330,11 +367,13 @@ function CreateEvent() {
             WebkitTextFillColor: "transparent",
           }}
         >
-          Create Campus Event
+          {isEditing ? "Edit Rejected Event" : "Create Campus Event"}
         </h1>
 
         <p style={{ color: "#94a3b8", fontSize: "15px" }}>
-          Upload an event poster to instantly extract details with AI OCR ingestion.
+          {isEditing
+            ? "Update the rejected event details and resubmit it for approval."
+            : "Upload an event poster to instantly extract details with AI OCR ingestion."}
         </p>
       </div>
 
@@ -415,19 +454,10 @@ function CreateEvent() {
                   type="button"
                   onClick={() => {
                     setPoster(null);
+                    setPosterChanged(true);
                     setPreview("");
                     setExtractedText("");
                     setError("");
-
-                    setFormData((prev) => ({
-                      ...prev,
-                      title: "",
-                      description: "",
-                      date: "",
-                      time: "",
-                      venue: "",
-                      contact_phone: "",
-                    }));
                   }}
                   style={{
                     marginTop: "12px",
@@ -825,6 +855,8 @@ function CreateEvent() {
             ? "Submitting Event..."
             : loadingOcr
             ? "Extracting Event Details..."
+            : isEditing
+            ? "Update & Resubmit for Approval →"
             : "Submit Event for Approval →"}
         </button>
 

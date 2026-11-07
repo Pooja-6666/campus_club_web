@@ -70,8 +70,61 @@ const createOrganizerEvent = async (req, res, next) => {
   }
 };
 
+
+const updateRejectedOrganizerEvent = async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.id);
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({ error: "Invalid event ID" });
+    }
+
+    const required = ["title", "description", "date", "venue"];
+    const missing = required.filter((field) => !String(req.body[field] || "").trim());
+    if (missing.length) {
+      return res.status(400).json({ error: `Required fields missing: ${missing.join(", ")}` });
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(req.body.date)) {
+      return res.status(400).json({
+        error: "Event date must be in YYYY-MM-DD format",
+      });
+    }
+
+    if (req.body.endDate && !/^\d{4}-\d{2}-\d{2}$/.test(req.body.endDate)) {
+      return res.status(400).json({
+        error: "End date must be in YYYY-MM-DD format",
+      });
+    }
+
+    if (req.body.registrationUrl) {
+      try {
+        const url = new URL(req.body.registrationUrl);
+        if (!["http:", "https:"].includes(url.protocol)) throw new Error();
+      } catch {
+        return res.status(400).json({ error: "Registration URL must start with http:// or https://" });
+      }
+    }
+
+    const event = await organizerService.updateRejectedEvent(
+      req.user.id,
+      eventId,
+      req.body,
+      req.file
+    );
+
+    return res.json({
+      success: true,
+      message: "Event updated and resubmitted for faculty approval.",
+      event,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getOrganizerEvents,
   parsePosterOcr,
   createOrganizerEvent,
+  updateRejectedOrganizerEvent,
 };

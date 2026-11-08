@@ -38,6 +38,39 @@ EXPECTED_COLUMNS = [
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
+# ---------------- IMAGE MATCHING ----------------
+
+def find_image(filename, image_lookup):
+    """
+    Match an Excel image_name against actual poster filenames.
+
+    Handles:
+    1. Exact filename matches.
+    2. Excel filenames without extensions.
+    """
+
+    filename = str(filename).strip()
+
+    # First check exact filename
+    if filename in image_lookup:
+        return image_lookup[filename]
+
+    # If extension is missing, append supported extensions.
+    # Do not use Path(filename).stem here because filenames
+    # contain dots in timestamps such as 16.22.59.
+    if not any(
+        filename.lower().endswith(ext)
+        for ext in IMAGE_EXTENSIONS
+    ):
+        for ext in IMAGE_EXTENSIONS:
+            candidate = filename + ext
+
+            if candidate in image_lookup:
+                return image_lookup[candidate]
+
+    return None
+
+
 # ---------------- VALIDATION ----------------
 
 def validate_dataset():
@@ -68,11 +101,13 @@ def validate_dataset():
     headers = [
         str(cell).strip()
         if cell is not None else ""
-        for cell in next(sheet.iter_rows(
-            min_row=1,
-            max_row=1,
-            values_only=True
-        ))
+        for cell in next(
+            sheet.iter_rows(
+                min_row=1,
+                max_row=1,
+                values_only=True
+            )
+        )
     ]
 
     # Ignore empty trailing Excel columns
@@ -83,12 +118,14 @@ def validate_dataset():
     print(f"Columns found: {headers}\n")
 
     if "image_name" not in headers:
+        workbook.close()
         raise ValueError(
             "Required column 'image_name' is missing."
         )
 
     missing_columns = [
-        column for column in EXPECTED_COLUMNS
+        column
+        for column in EXPECTED_COLUMNS
         if column not in headers
     ]
 
@@ -98,7 +135,8 @@ def validate_dataset():
         )
 
     column_index = {
-        name: index for index, name in enumerate(headers)
+        name: index
+        for index, name in enumerate(headers)
         if name
     }
 
@@ -130,7 +168,8 @@ def validate_dataset():
     # ---------------- IMAGE VALIDATION ----------------
 
     image_files = [
-        file for file in POSTER_DIR.rglob("*")
+        file
+        for file in POSTER_DIR.rglob("*")
         if file.is_file()
         and file.suffix.lower() in IMAGE_EXTENSIONS
     ]
@@ -138,13 +177,15 @@ def validate_dataset():
     print(f"Poster images found: {len(image_files)}")
 
     image_lookup = {
-        file.name: file for file in image_files
+        file.name: file
+        for file in image_files
     }
 
     print("\nChecking image references...")
 
     referenced_images = []
     missing_images = []
+    matched_image_names = set()
 
     for item in annotations:
 
@@ -159,19 +200,30 @@ def validate_dataset():
         filename = str(filename).strip()
         referenced_images.append(filename)
 
-        if filename not in image_lookup:
+        matched_image = find_image(filename, image_lookup)
+
+        if matched_image is None:
+
             missing_images.append(filename)
+
             errors.append(
                 f"Row {item['row_number']}: "
                 f"Image not found: {filename}"
             )
+
+        else:
+
+            # Track the actual image filename, not the
+            # Excel reference (which may omit its extension).
+            matched_image_names.add(matched_image.name)
 
     # ---------------- DUPLICATE VALIDATION ----------------
 
     counts = Counter(referenced_images)
 
     duplicates = [
-        name for name, count in counts.items()
+        name
+        for name, count in counts.items()
         if count > 1
     ]
 
@@ -183,8 +235,9 @@ def validate_dataset():
     # ---------------- UNUSED IMAGES ----------------
 
     unused_images = [
-        filename for filename in image_lookup
-        if filename not in set(referenced_images)
+        filename
+        for filename in image_lookup
+        if filename not in matched_image_names
     ]
 
     if unused_images:
@@ -210,8 +263,13 @@ def validate_dataset():
             if value is None or (
                 isinstance(value, str)
                 and value.strip().lower() in {
-                    "", "n/a", "na", "not available",
-                    "unknown", "null", "none"
+                    "",
+                    "n/a",
+                    "na",
+                    "not available",
+                    "unknown",
+                    "null",
+                    "none"
                 }
             ):
                 missing_count += 1
@@ -223,7 +281,7 @@ def validate_dataset():
     report = {
         "total_annotations": len(annotations),
         "total_poster_images": len(image_files),
-        "matched_images": len(referenced_images) - len(missing_images),
+        "matched_images": len(matched_image_names),
         "missing_images": missing_images,
         "duplicate_annotations": duplicates,
         "unused_images": unused_images,
@@ -240,6 +298,8 @@ def validate_dataset():
     with open(report_file, "w", encoding="utf-8") as file:
         json.dump(report, file, indent=4, default=str)
 
+    # ---------------- SUMMARY ----------------
+
     print("\n========== VALIDATION SUMMARY ==========\n")
 
     print(f"Annotations       : {len(annotations)}")
@@ -253,13 +313,21 @@ def validate_dataset():
     for column, count in missing_values.items():
         print(f"  {column}: {count}")
 
+    if unused_images:
+        print("\nUNUSED IMAGES:")
+
+        for filename in unused_images:
+            print(f"  - {filename}")
+
     if warnings:
         print("\nWARNINGS:")
+
         for warning in warnings:
             print(f"  - {warning}")
 
     if errors:
         print("\nERRORS:")
+
         for error in errors:
             print(f"  - {error}")
 

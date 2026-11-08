@@ -112,11 +112,18 @@ const updateRejectedOrganizerEvent = async (req, res, next) => {
       req.file
     );
 
+    const isEditRequest = event.edit_request_id !== undefined;
+
     return res.json({
       success: true,
-      message: "Event updated and resubmitted for faculty approval.",
-      event,
+      message: isEditRequest
+        ? "Changes submitted for faculty approval. The published event remains unchanged until approval."
+        : "Event updated and submitted for faculty approval.",
+      ...(isEditRequest
+        ? { editRequest: event }
+        : { event }),
     });
+
   } catch (error) {
     next(error);
   }

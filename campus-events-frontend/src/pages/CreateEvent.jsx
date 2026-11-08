@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const toDateInput = (value) => {
   if (!value) return "";
@@ -9,14 +8,20 @@ const toDateInput = (value) => {
 
 function CreateEvent({ eventToEdit = null, onSuccess }) {
   const isEditing = Boolean(eventToEdit);
+  const eventStatus = String(eventToEdit?.status || "").toUpperCase();
+
+  const isApprovedEdit = isEditing && eventStatus === "APPROVED";
+  const isRejectedEdit = isEditing && eventStatus === "REJECTED";
   const [poster, setPoster] = useState(null);
   const [preview, setPreview] = useState(
     eventToEdit?.posterUrl
       ? `http://localhost:3000${eventToEdit.posterUrl}`
       : ""
   );
+  const ocrController = useRef(null);
   const [loadingOcr, setLoadingOcr] = useState(false);
   const [extractedText, setExtractedText] = useState("");
+  
 
   const [formData, setFormData] = useState(() => ({
     title: eventToEdit?.title || "",
@@ -126,6 +131,7 @@ function CreateEvent({ eventToEdit = null, onSuccess }) {
     setPreview(URL.createObjectURL(file));
 
     try {
+      ocrController.current = new AbortController();
       setLoadingOcr(true);
 
       const token = localStorage.getItem("token");
@@ -141,6 +147,7 @@ function CreateEvent({ eventToEdit = null, onSuccess }) {
             Authorization: `Bearer ${token}`,
           },
           body: uploadData,
+          signal: ocrController.current.signal,
         }
       );
 
@@ -183,12 +190,16 @@ function CreateEvent({ eventToEdit = null, onSuccess }) {
       );
 
     } catch (err) {
+      if (err.name === "AbortError") {
+        setExtractedText("Poster analysis stopped. You can enter details manually.");
+        return;
+      }
+
       console.error("OCR API error:", err);
 
       setError(
         err.message || "Failed to extract poster details."
       );
-
     } finally {
       setLoadingOcr(false);
     }
@@ -287,14 +298,18 @@ function CreateEvent({ eventToEdit = null, onSuccess }) {
         );
       }
 
-      setMessage(
-        isEditing
-          ? "Event updated and resubmitted successfully! Pending faculty approval."
-          : "✨ Event submitted successfully! Pending faculty approval."
-      );
+      const successMessage = isApprovedEdit
+        ? "Changes submitted successfully! Your published event will remain unchanged until faculty approves the request."
+        : isRejectedEdit
+        ? "Event updated and resubmitted successfully! Pending faculty approval."
+        : isEditing
+        ? "Event updated successfully."
+        : "✨ Event submitted successfully! Pending faculty approval.";
 
-      if (isEditing && onSuccess) {
-        // Return to dashboard after the update; dashboard refreshes its event list.
+      alert(successMessage);
+
+      if (onSuccess) {
+        // Return to organizer dashboard after successful submission.
         onSuccess();
       }
 
@@ -367,12 +382,16 @@ function CreateEvent({ eventToEdit = null, onSuccess }) {
             WebkitTextFillColor: "transparent",
           }}
         >
-          {isEditing ? "Edit Rejected Event" : "Create Campus Event"}
+          {isEditing ? "Edit Campus Event" : "Create Campus Event"}
         </h1>
 
         <p style={{ color: "#94a3b8", fontSize: "15px" }}>
-          {isEditing
+          {isApprovedEdit
+            ? "Propose changes to your published event. Faculty approval is required before changes become visible."
+            : isRejectedEdit
             ? "Update the rejected event details and resubmit it for approval."
+            : isEditing
+            ? "Update your pending event details."
             : "Upload an event poster to instantly extract details with AI OCR ingestion."}
         </p>
       </div>
@@ -430,7 +449,8 @@ function CreateEvent({ eventToEdit = null, onSuccess }) {
               />
 
               <div style={{ flex: 1 }}>
-                {loadingOcr ? (
+              {loadingOcr ? (
+                <div>
                   <p
                     style={{
                       color: "#a855f7",
@@ -439,7 +459,31 @@ function CreateEvent({ eventToEdit = null, onSuccess }) {
                   >
                     🤖 Analyzing poster with AI OCR...
                   </p>
-                ) : (
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      ocrController.current?.abort();
+                      setLoadingOcr(false);
+                      setExtractedText(
+                        "Poster analysis stopped. You can enter details manually."
+                      );
+                    }}
+                    style={{
+                      marginTop: "10px",
+                      background: "rgba(239, 68, 68, 0.1)",
+                      color: "#ef4444",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                      padding: "8px 14px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                    }}
+                  >
+                    ✕ Stop Poster Analysis
+                  </button>
+                </div>
+              ) : (
                   <p
                     style={{
                       color: "#22c55e",
@@ -855,8 +899,12 @@ function CreateEvent({ eventToEdit = null, onSuccess }) {
             ? "Submitting Event..."
             : loadingOcr
             ? "Extracting Event Details..."
-            : isEditing
+            : isApprovedEdit
+            ? "Submit Changes for Faculty Approval →"
+            : isRejectedEdit
             ? "Update & Resubmit for Approval →"
+            : isEditing
+            ? "Update Event →"
             : "Submit Event for Approval →"}
         </button>
 

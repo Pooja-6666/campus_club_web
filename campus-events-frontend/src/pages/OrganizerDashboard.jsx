@@ -128,6 +128,37 @@ function OrganizerDashboard({ user, onLogout }) {
                   margin-top: 12px;
                 }
 
+                .organizer-dashboard .organizer-edit-request-status {
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 8px;
+                  padding: 7px 12px;
+                  border-radius: 999px;
+                  font-size: 12px;
+                  font-weight: 700;
+                  letter-spacing: 0.3px;
+                  margin: 8px 0 12px;
+                  border: 1px solid transparent;
+                }
+
+                .organizer-dashboard .organizer-edit-request-status.status-pending {
+                  color: #fbbf24;
+                  background: rgba(251, 191, 36, 0.12);
+                  border-color: rgba(251, 191, 36, 0.35);
+                }
+
+                .organizer-dashboard .organizer-edit-request-status.status-approved {
+                  color: #4ade80;
+                  background: rgba(74, 222, 128, 0.12);
+                  border-color: rgba(74, 222, 128, 0.35);
+                }
+
+                .organizer-dashboard .organizer-edit-request-status.status-rejected {
+                  color: #f87171;
+                  background: rgba(248, 113, 113, 0.12);
+                  border-color: rgba(248, 113, 113, 0.35);
+                }
+
                 @media (max-width: 600px) {
                   .organizer-dashboard .organizer-dashboard-main {
                     width: calc(100% - 24px);
@@ -200,25 +231,73 @@ function OrganizerDashboard({ user, onLogout }) {
                     }}
                     showBookmark={false}
                   />
-
                   <div className="organizer-event-status">
-                    <span
-                      className={`organizer-status status-${String(
-                        event.status || "pending"
-                      ).toLowerCase()}`}
-                    >
-                      Status: {event.status || "PENDING"}
-                    </span>
-                    {event.status === "REJECTED" && (
+                    <div>
+                      <p>
+                        Event Status: {event.status || "PENDING"}
+                      </p>
+
+                      {event.status === "APPROVED" &&
+                        event.editRequests?.some(
+                          (request) => request.status === "PENDING"
+                        ) && (
+                        <div>
+                          <div
+                            className={`organizer-edit-request-status status-${String(
+                              event.editRequests[0].status
+                            ).toLowerCase()}`}
+                          >
+                            <span>
+                              {event.editRequests[0].status === "PENDING"
+                                ? "⏳"
+                                : event.editRequests[0].status === "APPROVED"
+                                ? "✓"
+                                : "✕"}
+                            </span>
+
+                            <span>
+                              Edit Request:{" "}
+                              {event.editRequests[0].status === "PENDING"
+                                ? "PENDING"
+                                : event.editRequests[0].status}
+                            </span>
+                          </div>
+
+                          {event.editRequests[0].status === "REJECTED" &&
+                            event.editRequests[0].rejectionReason && (
+                              <p>
+                                Edit Rejection Reason:{" "}
+                                {event.editRequests[0].rejectionReason}
+                              </p>
+                            )}
+                        </div>
+                      )}
+                    </div>
+                    {["PENDING", "APPROVED", "REJECTED"].includes(
+                      String(event.status).toUpperCase()
+                    ) && (
                       <button
                         type="button"
                         className="organizer-create-button"
                         onClick={() => {
-                          setEditingEvent(event);
+                          const pendingEditRequest = event.editRequests?.[0];
+
+                          const eventToEdit = pendingEditRequest?.proposedData
+                            ? {
+                                ...event,
+                                ...pendingEditRequest.proposedData,
+                                event_id: event.event_id,
+                                status: event.status,
+                              }
+                            : event;
+
+                          setEditingEvent(eventToEdit);
                           setShowCreateForm(true);
                         }}
                       >
-                        Edit & Resubmit
+                        {event.status === "REJECTED"
+                          ? "Edit & Resubmit"
+                          : "Edit Event"}
                       </button>
                     )}
                   </div>

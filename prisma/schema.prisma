@@ -99,6 +99,7 @@ model Event {
   views      EventView[]
   rsvps      RSVP[]
   feedback   EventFeedback[]
+  editRequests EventEditRequest[]
 
   @@index([status])
   @@index([date])
@@ -212,4 +213,19 @@ model FacultyPasswordResetOTP {
   createdAt  DateTime @default(now())
 
   faculty Faculty @relation(fields: [faculty_id], references: [faculty_id], onDelete: Cascade)
+}
+
+model EventEditRequest {
+  edit_request_id Int      @id @default(autoincrement())
+  event_id        Int
+  proposedData    Json
+  status          String   @default("PENDING")
+  rejectionReason String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  event Event @relation(fields: [event_id], references: [event_id], onDelete: Cascade)
+
+  @@index([event_id])
+  @@index([status])
 }

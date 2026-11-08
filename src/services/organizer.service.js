@@ -3,7 +3,14 @@ const prisma = require("../config/prisma");
 const getOrganizerEvents = async (organizerId) => {
   return prisma.event.findMany({
     where: { created_by: organizerId },
-    include: { club: true },
+    include: {
+      club: true,
+      editRequests: {
+        where: { status: "PENDING" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 };
@@ -74,23 +81,33 @@ const createEvent = async (organizerId, body, posterFile) => {
 };
 
 
+
 const updateRejectedEvent = async (organizerId, eventId, body, posterFile) => {
-  // Ownership and status are checked together to prevent editing another organizer's event.
+  // Check ownership first, regardless of event status.
   const existing = await prisma.event.findFirst({
     where: {
       event_id: eventId,
       created_by: organizerId,
-      status: "REJECTED",
     },
   });
 
   if (!existing) {
-    const error = new Error("Rejected event not found or you do not have permission to edit it");
+    const error = new Error(
+      "Event not found or you do not have permission to edit it"
+    );
     error.status = 404;
     throw error;
   }
 
+  // Only these statuses can be edited.
+  if (!["PENDING", "REJECTED", "APPROVED"].includes(existing.status)) {
+    const error = new Error("This event cannot be edited in its current status");
+    error.status = 400;
+    throw error;
+  }
+
   const capacity = body.capacity ? Number(body.capacity) : null;
+
   if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1)) {
     const error = new Error("Capacity must be a positive whole number");
     error.status = 400;
@@ -102,7 +119,10 @@ const updateRejectedEvent = async (organizerId, eventId, body, posterFile) => {
     ? new Date(`${body.endDate}T00:00:00.000Z`)
     : null;
 
-  if (Number.isNaN(date.getTime()) || (endDate && Number.isNaN(endDate.getTime()))) {
+  if (
+    Number.isNaN(date.getTime()) ||
+    (endDate && Number.isNaN(endDate.getTime()))
+  ) {
     const error = new Error("Invalid event date");
     error.status = 400;
     throw error;
@@ -119,31 +139,76 @@ const updateRejectedEvent = async (organizerId, eventId, body, posterFile) => {
     .map((tag) => tag.trim())
     .filter(Boolean);
 
+  const updatedFields = {
+    title: String(body.title).trim(),
+    description: String(body.description).trim(),
+    date,
+    endDate,
+    time: body.time ? String(body.time).trim() : null,
+    venue: String(body.venue).trim(),
+    contact_phone: body.contact_phone
+      ? String(body.contact_phone).trim()
+      : null,
+    registrationUrl: body.registrationUrl
+      ? String(body.registrationUrl).trim()
+      : null,
+    category: body.category ? String(body.category).trim() : null,
+    tags,
+    capacity,
+    posterUrl: posterFile
+      ? `/uploads/${posterFile.filename}`
+      : body.removePoster === "true"
+      ? null
+      : existing.posterUrl,
+    extractedText: body.extractedText
+      ? String(body.extractedText)
+      : existing.extractedText,
+  };
+
+  // APPROVED events: submit proposed changes for faculty approval.
+  // Do NOT update the published Event record yet.
+  if (existing.status === "APPROVED") {
+    const pendingRequest = await prisma.eventEditRequest.findFirst({
+      where: {
+        event_id: eventId,
+        status: "PENDING",
+      },
+    });
+
+    if (pendingRequest) {
+      const error = new Error(
+        "This event already has a pending edit request"
+      );
+      error.status = 409;
+      throw error;
+    }
+
+    return prisma.eventEditRequest.create({
+      data: {
+        event_id: eventId,
+        proposedData: {
+          ...updatedFields,
+          date: date.toISOString(),
+          endDate: endDate ? endDate.toISOString() : null,
+        },
+        status: "PENDING",
+      },
+    });
+  }
+
+  // PENDING events: update directly, still awaiting initial approval.
+  // REJECTED events: update directly and resubmit for approval.
   return prisma.event.update({
     where: { event_id: eventId },
     data: {
-      title: String(body.title).trim(),
-      description: String(body.description).trim(),
-      date,
-      endDate,
-      time: body.time ? String(body.time).trim() : null,
-      venue: String(body.venue).trim(),
-      contact_phone: body.contact_phone ? String(body.contact_phone).trim() : null,
-      registrationUrl: body.registrationUrl ? String(body.registrationUrl).trim() : null,
-      category: body.category ? String(body.category).trim() : null,
-      tags,
-      capacity,
-      posterUrl: posterFile
-        ? `/uploads/${posterFile.filename}`
-        : body.removePoster === "true"
-        ? null
-        : existing.posterUrl,
-      extractedText: body.extractedText ? String(body.extractedText) : existing.extractedText,
+      ...updatedFields,
       status: "PENDING",
+      rejectionReason: null,
     },
     include: { club: true },
   });
 };
+
 
 module.exports = {
   getOrganizerEvents,

@@ -8,6 +8,9 @@ const {
   getPendingEvents,
   approveEvent,
   rejectEvent,
+  getPendingEditRequests,
+  approveEditRequest,
+  rejectEditRequest,
 } = require("../controllers/faculty.controller");
 
 router.get(
@@ -29,6 +32,30 @@ router.put(
   authenticate,
   authorize("FACULTY"),
   rejectEvent
+);
+
+// View edit requests for already-approved events
+router.get(
+  "/event-edit-requests/pending",
+  authenticate,
+  authorize("FACULTY"),
+  getPendingEditRequests
+);
+
+// Approve proposed changes to a published event
+router.put(
+  "/event-edit-requests/:id/approve",
+  authenticate,
+  authorize("FACULTY"),
+  approveEditRequest
+);
+
+// Reject proposed changes to a published event
+router.put(
+  "/event-edit-requests/:id/reject",
+  authenticate,
+  authorize("FACULTY"),
+  rejectEditRequest
 );
 
 module.exports = router;

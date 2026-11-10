@@ -1,6 +1,5 @@
 
 const prisma = require("../config/prisma");
-
 const getPendingEvents = async () => {
   return prisma.event.findMany({
     where: {
@@ -12,6 +11,36 @@ const getPendingEvents = async () => {
     },
     orderBy: {
       createdAt: "asc",
+    },
+  });
+};
+
+const getApprovedEvents = async () => {
+  return prisma.event.findMany({
+    where: {
+      status: "APPROVED",
+    },
+    include: {
+      club: true,
+      organizer: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
+
+const getRejectedEvents = async () => {
+  return prisma.event.findMany({
+    where: {
+      status: "REJECTED",
+    },
+    include: {
+      club: true,
+      organizer: true,
+    },
+    orderBy: {
+      createdAt: "desc",
     },
   });
 };
@@ -189,6 +218,8 @@ const rejectEditRequest = async (editRequestId, rejectionReason) => {
 
 module.exports = {
   getPendingEvents,
+  getApprovedEvents,
+  getRejectedEvents,
   approveEvent,
   rejectEvent,
   getPendingEditRequests,

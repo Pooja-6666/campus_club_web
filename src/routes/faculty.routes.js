@@ -6,6 +6,8 @@ const authorize = require("../middleware/role.middleware");
 
 const {
   getPendingEvents,
+  getApprovedEvents,
+  getRejectedEvents,
   approveEvent,
   rejectEvent,
   getPendingEditRequests,
@@ -18,6 +20,20 @@ router.get(
   authenticate,
   authorize("FACULTY"),
   getPendingEvents
+);
+
+router.get(
+  "/events/approved",
+  authenticate,
+  authorize("FACULTY"),
+  getApprovedEvents
+);
+
+router.get(
+  "/events/rejected",
+  authenticate,
+  authorize("FACULTY"),
+  getRejectedEvents
 );
 
 router.put(

@@ -11,6 +11,24 @@ const getPendingEvents = async (req, res, next) => {
   }
 };
 
+const getApprovedEvents = async (req, res, next) => {
+  try {
+    const events = await facultyService.getApprovedEvents();
+    res.json(events);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRejectedEvents = async (req, res, next) => {
+  try {
+    const events = await facultyService.getRejectedEvents();
+    res.json(events);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const approveEvent = async (req, res, next) => {
   try {
     const eventId = Number(req.params.id);
@@ -122,6 +140,8 @@ const rejectEditRequest = async (req, res, next) => {
 
 module.exports = {
   getPendingEvents,
+  getApprovedEvents,
+  getRejectedEvents,
   approveEvent,
   rejectEvent,
   getPendingEditRequests,

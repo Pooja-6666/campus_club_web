@@ -4,6 +4,13 @@ export default function FacultyDashboard({ user, onLogout }) {
   const [pendingEvents, setPendingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("pending");
+
+  const [approvedEvents, setApprovedEvents] = useState([]);
+  const [rejectedEvents, setRejectedEvents] = useState([]);
+
+  const [approvedLoading, setApprovedLoading] = useState(true);
+  const [rejectedLoading, setRejectedLoading] = useState(true);
 
   const [rejectingEvent, setRejectingEvent] = useState(null);
   const [approvingEvent, setApprovingEvent] = useState(null);
@@ -46,6 +53,60 @@ export default function FacultyDashboard({ user, onLogout }) {
     }
   };
 
+  const fetchApprovedEvents = async () => {
+    try {
+      setApprovedLoading(true);
+
+      const res = await fetch(
+        "http://localhost:3000/api/faculty/events/approved",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch approved events");
+      }
+
+      setApprovedEvents(data);
+    } catch (err) {
+      console.error("Error fetching approved events:", err);
+    } finally {
+      setApprovedLoading(false);
+    }
+  };
+
+  const fetchRejectedEvents = async () => {
+    try {
+      setRejectedLoading(true);
+
+      const res = await fetch(
+        "http://localhost:3000/api/faculty/events/rejected",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch rejected events");
+      }
+
+      setRejectedEvents(data);
+    } catch (err) {
+      console.error("Error fetching rejected events:", err);
+    } finally {
+      setRejectedLoading(false);
+    }
+  };
+
   const fetchPendingEditRequests = async () => {
   try {
     setEditRequestLoading(true);
@@ -75,6 +136,8 @@ export default function FacultyDashboard({ user, onLogout }) {
 
   useEffect(() => {
     fetchPendingEvents();
+    fetchApprovedEvents();
+    fetchRejectedEvents();
     fetchPendingEditRequests();
   }, []);
 
@@ -126,6 +189,7 @@ export default function FacultyDashboard({ user, onLogout }) {
 
       setApprovingEvent(null);
       await fetchPendingEvents();
+      await fetchApprovedEvents();
 
       alert(`"${approvingEvent.title}" approved successfully!`);
     } catch (err) {
@@ -154,6 +218,7 @@ export default function FacultyDashboard({ user, onLogout }) {
 
       await fetchPendingEditRequests();
       await fetchPendingEvents();
+      await fetchApprovedEvents();
 
       alert("Event changes approved and published.");
     } catch (err) {
@@ -257,6 +322,7 @@ export default function FacultyDashboard({ user, onLogout }) {
       setRejectionReason("");
 
       await fetchPendingEvents();
+      await fetchRejectedEvents();
 
       alert("Event rejected. Feedback has been sent to the organizer.");
     } catch (err) {
@@ -275,17 +341,21 @@ export default function FacultyDashboard({ user, onLogout }) {
         padding: "40px",
       }}
     >
+
+      {/* Faculty Dashboard Header */}
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
+          justifyContent: "space-between",
+          gap: "24px",
           marginBottom: "32px",
           borderBottom: "1px solid rgba(255,255,255,0.1)",
-          paddingBottom: "20px",
+          paddingBottom: "24px",
         }}
       >
-        <div>
+        {/* Portal Title */}
+        <div style={{ minWidth: "340px" }}>
           <span
             style={{
               fontSize: "12px",
@@ -303,55 +373,151 @@ export default function FacultyDashboard({ user, onLogout }) {
           </h1>
         </div>
 
+        {/* Navigation Tabs */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            flex: 1,
+            gap: "8px",
+            padding: "8px",
+            background: "rgba(30, 41, 59, 0.7)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "14px",
+          }}
+        >
+          {[
+            {
+              id: "pending",
+              label: "Pending",
+              count: pendingEvents.length,
+              color: "#fbbf24",
+            },
+            {
+              id: "editRequests",
+              label: "Edit Requests",
+              count: pendingEditRequests.length,
+              color: "#fbbf24",
+            },
+            {
+              id: "approved",
+              label: "Approved",
+              count: approvedEvents.length,
+              color: "#34d399",
+            },
+            {
+              id: "rejected",
+              label: "Rejected",
+              count: rejectedEvents.length,
+              color: "#f87171",
+            },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  padding: "14px 10px",
+                  background: isActive
+                    ? "rgba(168, 85, 247, 0.18)"
+                    : "transparent",
+                  border: isActive
+                    ? "1px solid rgba(168, 85, 247, 0.6)"
+                    : "1px solid transparent",
+                  borderRadius: "10px",
+                  color: isActive ? "#e9d5ff" : "#94a3b8",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "9px",
+                  fontWeight: isActive ? "700" : "600",
+                  fontSize: "13px",
+                  transition: "all 0.2s ease",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span>{tab.label}</span>
+
+                <span
+                  style={{
+                    background: `${tab.color}22`,
+                    color: tab.color,
+                    padding: "3px 8px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                  }}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Logout */}
         <button
           onClick={onLogout}
           style={{
-            padding: "10px 20px",
-            background: "rgba(239, 68, 68, 0.2)",
+            padding: "16px 24px",
+            background: "rgba(239, 68, 68, 0.15)",
             border: "1px solid rgba(239, 68, 68, 0.4)",
             color: "#f87171",
             borderRadius: "10px",
             cursor: "pointer",
-            fontWeight: "600",
+            fontWeight: "700",
+            fontSize: "15px",
           }}
         >
           Logout
         </button>
       </div>
 
-      {loading && <p style={{ color: "#94a3b8" }}>Loading pending approvals...</p>}
 
-      {error && <p style={{ color: "#ef4444" }}>{error}</p>}
+      {activeTab === "pending" && (
+        <>
+          {loading && (
+            <p style={{ color: "#94a3b8" }}>Loading pending approvals...</p>
+          )}
 
-      {!loading && !error && pendingEvents.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "60px",
-            background: "rgba(30, 41, 59, 0.5)",
-            borderRadius: "16px",
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          <h3 style={{ fontSize: "20px", color: "#cbd5e1" }}>All caught up!</h3>
-          <p style={{ color: "#64748b" }}>
-            There are no pending club event submissions requiring your approval
-            right now.
-          </p>
-        </div>
+          {error && <p style={{ color: "#ef4444" }}>{error}</p>}
+
+          {!loading && !error && pendingEvents.length === 0 && (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "60px",
+                background: "rgba(30, 41, 59, 0.5)",
+                borderRadius: "16px",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <h3 style={{ fontSize: "20px", color: "#cbd5e1" }}>
+                All caught up!
+              </h3>
+              <p style={{ color: "#64748b" }}>
+                There are no pending club event submissions requiring your approval
+                right now.
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       {/* Pending changes to published events */}
+      {activeTab === "editRequests" && (
+      <>
       <div style={{ marginTop: "40px", marginBottom: "24px" }}>
         <h2 style={{ fontSize: "24px", fontWeight: "800" }}>
           Pending Changes to Published Events
         </h2>
-
         <p style={{ color: "#94a3b8", fontSize: "14px" }}>
           Review changes organizers have requested for already-approved events.
         </p>
       </div>
-
       {editRequestLoading && (
         <p style={{ color: "#94a3b8" }}>Loading edit requests...</p>
       )}
@@ -383,6 +549,67 @@ export default function FacultyDashboard({ user, onLogout }) {
         {pendingEditRequests.map((request) => {
           const event = request.event;
           const proposed = request.proposedData;
+          const fieldsToCompare = [
+            { key: "title", label: "Event Title" },
+            { key: "description", label: "Description" },
+            { key: "date", label: "Start Date" },
+            { key: "endDate", label: "End Date" },
+            { key: "time", label: "Time" },
+            { key: "venue", label: "Venue" },
+            { key: "category", label: "Category" },
+            { key: "tags", label: "Tags" },
+            { key: "capacity", label: "Capacity" },
+            { key: "contact_phone", label: "Contact Phone" },
+            { key: "registrationUrl", label: "Registration URL" },
+            { key: "posterUrl", label: "Poster" },
+          ];
+
+          const normalizeValue = (value, key) => {
+            if (value === null || value === undefined || value === "") {
+              return "";
+            }
+
+            if (key === "date" || key === "endDate") {
+              const date = new Date(value);
+              return Number.isNaN(date.getTime())
+                ? String(value)
+                : date.toISOString().slice(0, 10);
+            }
+
+            if (Array.isArray(value)) {
+              return JSON.stringify(value);
+            }
+
+            return String(value).trim();
+          };
+
+          const changedFields = fieldsToCompare.filter(({ key }) =>
+            normalizeValue(event[key], key) !==
+            normalizeValue(proposed?.[key], key)
+          );
+
+          const formatValue = (value, key) => {
+            if (key === "posterUrl") {
+              return value ? "Poster available" : "No poster";
+            }
+
+            if (key === "date" || key === "endDate") {
+              return value
+                ? new Date(value).toLocaleDateString("en-IN", {
+                    timeZone: "UTC",
+                  })
+                : "Not specified";
+            }
+
+            if (Array.isArray(value)) {
+              return value.length ? value.join(", ") : "None";
+            }
+
+            return value === null || value === undefined || value === ""
+              ? "Not specified"
+              : String(value);
+          };
+
 
           return (
             <div
@@ -394,85 +621,119 @@ export default function FacultyDashboard({ user, onLogout }) {
                 padding: "20px",
               }}
             >
-              <span
-                style={{
-                  fontSize: "11px",
-                  background: "rgba(245, 158, 11, 0.2)",
-                  color: "#fbbf24",
-                  padding: "4px 8px",
-                  borderRadius: "6px",
-                  fontWeight: "700",
-                  textTransform: "uppercase",
-                }}
-              >
-                Edit Request
-              </span>
 
               <h3 style={{ fontSize: "18px", margin: "12px 0 6px" }}>
                 {event?.title}
               </h3>
 
-              <p style={{ color: "#94a3b8", fontSize: "13px" }}>
-                The organizer has requested changes to this published event.
-              </p>
 
+              {/* Organizer Information */}
+              <div
+                style={{
+                  background: "rgba(15, 23, 42, 0.9)",
+                  padding: "14px",
+                  borderRadius: "10px",
+                  marginTop: "16px",
+                  fontSize: "13px",
+                  lineHeight: "1.8",
+                }}
+              >
+                <h4 style={{ color: "#c084fc", margin: "0 0 10px 0" }}>
+                  Organizer Information
+                </h4>
+
+                <p style={{ margin: 0 }}>
+                  <strong>Organizer:</strong>{" "}
+                  {event?.organizer?.name || "Not available"}
+                </p>
+
+                <p style={{ margin: 0 }}>
+                  <strong>Email:</strong>{" "}
+                  {event?.organizer?.email || "Not available"}
+                </p>
+
+                <p style={{ margin: 0 }}>
+                  <strong>Club:</strong>{" "}
+                  {event?.club?.club_name || "Not available"}
+                </p>
+              </div>
+
+              {/* Actual Changes */}
               <div
                 style={{
                   background: "#0f172a",
                   padding: "14px",
                   borderRadius: "10px",
-                  marginTop: "16px",
+                  marginTop: "14px",
                   fontSize: "13px",
                   lineHeight: "1.7",
                 }}
               >
-                <p style={{ color: "#f87171", marginTop: 0 }}>
-                  <strong>Current published details</strong>
-                </p>
+                <h4 style={{ color: "#fbbf24", margin: "0 0 14px 0" }}>
+                  Requested Changes ({changedFields.length})
+                </h4>
 
-                <p>
-                  <strong>Title:</strong> {event?.title}
-                </p>
+                {changedFields.length === 0 ? (
+                  <p style={{ color: "#94a3b8", margin: 0 }}>
+                    No event details have changed.
+                  </p>
+                ) : (
+                  changedFields.map(({ key, label }) => (
+                    <div
+                      key={key}
+                      style={{
+                        marginBottom: "14px",
+                        paddingBottom: "12px",
+                        borderBottom: "1px solid rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      <strong style={{ color: "#e2e8f0" }}>
+                        {label}
+                      </strong>
 
-                <p>
-                  <strong>Date:</strong>{" "}
-                  {event?.date
-                    ? new Date(event.date).toLocaleDateString()
-                    : "Not specified"}
-                </p>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: "12px",
+                          marginTop: "8px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            background: "rgba(248, 113, 113, 0.1)",
+                            padding: "10px",
+                            borderRadius: "8px",
+                          }}
+                        >
+                          <span style={{ color: "#f87171", fontWeight: "700" }}>
+                            BEFORE
+                          </span>
+                          <p style={{ margin: "5px 0 0", color: "#cbd5e1" }}>
+                            {formatValue(event[key], key)}
+                          </p>
+                        </div>
 
-                <p>
-                  <strong>Venue:</strong> {event?.venue}
-                </p>
-
-                <p style={{ color: "#34d399", marginTop: "18px" }}>
-                  <strong>Proposed changes</strong>
-                </p>
-
-                <p>
-                  <strong>Title:</strong>{" "}
-                  {proposed?.title ?? event?.title}
-                </p>
-
-                <p>
-                  <strong>Date:</strong>{" "}
-                  {proposed?.date
-                    ? new Date(proposed.date).toLocaleDateString()
-                    : event?.date
-                      ? new Date(event.date).toLocaleDateString()
-                      : "Not specified"}
-                </p>
-
-                <p>
-                  <strong>Venue:</strong>{" "}
-                  {proposed?.venue ?? event?.venue}
-                </p>
-
-                <p>
-                  <strong>Description:</strong>{" "}
-                  {proposed?.description ?? event?.description}
-                </p>
+                        <div
+                          style={{
+                            background: "rgba(52, 211, 153, 0.1)",
+                            padding: "10px",
+                            borderRadius: "8px",
+                          }}
+                        >
+                          <span style={{ color: "#34d399", fontWeight: "700" }}>
+                            AFTER
+                          </span>
+                          <p style={{ margin: "5px 0 0", color: "#cbd5e1" }}>
+                            {formatValue(proposed?.[key], key)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
+
 
               <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
                 <button
@@ -482,7 +743,7 @@ export default function FacultyDashboard({ user, onLogout }) {
                   style={{
                     flex: 1,
                     padding: "10px",
-                    background: "#10b981",
+                    background: "#059669",
                     color: "#fff",
                     border: "none",
                     borderRadius: "8px",
@@ -490,7 +751,7 @@ export default function FacultyDashboard({ user, onLogout }) {
                     cursor: "pointer",
                   }}
                 >
-                  Approve Changes
+                  Accept
                 </button>
 
                 <button
@@ -498,7 +759,7 @@ export default function FacultyDashboard({ user, onLogout }) {
                   style={{
                     flex: 1,
                     padding: "10px",
-                    background: "#ef4444",
+                    background: "#DC2626",
                     color: "#fff",
                     border: "none",
                     borderRadius: "8px",
@@ -506,14 +767,16 @@ export default function FacultyDashboard({ user, onLogout }) {
                     cursor: "pointer",
                   }}
                 >
-                  Reject Changes
+                  Reject
                 </button>
               </div>
             </div>
           );
         })}
       </div>
-
+      </>
+      )}
+      {activeTab === "pending" && (
       <div
         style={{
           display: "grid",
@@ -658,7 +921,7 @@ export default function FacultyDashboard({ user, onLogout }) {
                   style={{
                     flex: 1,
                     padding: "10px",
-                    background: "#10b981",
+                    background: "#059669",
                     color: "#fff",
                     border: "none",
                     borderRadius: "8px",
@@ -666,7 +929,7 @@ export default function FacultyDashboard({ user, onLogout }) {
                     cursor: "pointer",
                   }}
                 >
-                  Approve ✓
+                  Accept
                 </button>
 
                 <button
@@ -674,7 +937,7 @@ export default function FacultyDashboard({ user, onLogout }) {
                   style={{
                     flex: 1,
                     padding: "10px",
-                    background: "#ef4444",
+                    background: "#DC2626",
                     color: "#fff",
                     border: "none",
                     borderRadius: "8px",
@@ -682,13 +945,275 @@ export default function FacultyDashboard({ user, onLogout }) {
                     cursor: "pointer",
                   }}
                 >
-                  Reject ✕
+                  Reject
                 </button>
               </div>
             </div>
           </div>
         ))}
       </div>
+      )}
+
+      {/* Approved Events */}
+      {activeTab === "approved" && (
+        <>
+          <div style={{ marginTop: "20px", marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "24px", fontWeight: "800" }}>
+              Approved Events
+            </h2>
+            <p style={{ color: "#94a3b8", fontSize: "14px" }}>
+              Events that have been approved and published.
+            </p>
+          </div>
+
+          {approvedLoading && (
+            <p style={{ color: "#94a3b8" }}>Loading approved events...</p>
+          )}
+
+          {!approvedLoading && approvedEvents.length === 0 && (
+            <p style={{ color: "#94a3b8" }}>
+              There are no approved events yet.
+            </p>
+          )}
+
+          {!approvedLoading && approvedEvents.length > 0 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+                gap: "24px",
+              }}
+            >
+              {approvedEvents.map((event) => (
+                <div
+                  key={event.event_id}
+                  style={{
+                    background: "rgba(30, 41, 59, 0.7)",
+                    border: "1px solid rgba(52, 211, 153, 0.35)",
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  {event.posterUrl && (
+                    <img
+                      src={`http://localhost:3000${event.posterUrl}`}
+                      alt={event.title}
+                      style={{
+                        width: "100%",
+                        height: "200px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  )}
+
+                  <div style={{ padding: "20px" }}>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        background: "rgba(52, 211, 153, 0.2)",
+                        color: "#34d399",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        fontWeight: "700",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Approved
+                    </span>
+
+                    <h3 style={{ fontSize: "18px", margin: "12px 0 6px" }}>
+                      {event.title}
+                    </h3>
+
+                    <p style={{ fontSize: "13px", color: "#94a3b8" }}>
+                      {event.description}
+                    </p>
+
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#cbd5e1",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                        marginTop: "16px",
+                      }}
+                    >
+                      <span>📍 <strong>Venue:</strong> {event.venue}</span>
+                      <span>
+                        📅 <strong>Date:</strong>{" "}
+                        {event.date
+                          ? new Date(event.date).toLocaleDateString()
+                          : "Not specified"}{" "}
+                        at {event.time || "TBD"}
+                      </span>
+                      <span>
+                        <strong>Organizer:</strong>{" "}
+                        {event.organizer?.name || "Not available"}
+                      </span>
+                      <span>
+                        <strong>Club:</strong>{" "}
+                        {event.club?.club_name || "Not available"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Rejected Events */}
+      {activeTab === "rejected" && (
+        <>
+          <div style={{ marginTop: "20px", marginBottom: "24px" }}>
+            <h2 style={{ fontSize: "24px", fontWeight: "800" }}>
+              Rejected Events
+            </h2>
+            <p style={{ color: "#94a3b8", fontSize: "14px" }}>
+              Events that were rejected, along with the feedback provided to organizers.
+            </p>
+          </div>
+
+          {rejectedLoading && (
+            <p style={{ color: "#94a3b8" }}>Loading rejected events...</p>
+          )}
+
+          {!rejectedLoading && rejectedEvents.length === 0 && (
+            <p style={{ color: "#94a3b8" }}>
+              There are no rejected events.
+            </p>
+          )}
+
+          {!rejectedLoading && rejectedEvents.length > 0 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+                gap: "24px",
+              }}
+            >
+              {rejectedEvents.map((event) => (
+                <div
+                  key={event.event_id}
+                  style={{
+                    background: "rgba(30, 41, 59, 0.7)",
+                    border: "1px solid rgba(248, 113, 113, 0.35)",
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  {event.posterUrl && (
+                    <img
+                      src={`http://localhost:3000${event.posterUrl}`}
+                      alt={event.title}
+                      style={{
+                        width: "100%",
+                        height: "200px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  )}
+
+                  <div style={{ padding: "20px" }}>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        background: "rgba(248, 113, 113, 0.2)",
+                        color: "#f87171",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        fontWeight: "700",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Rejected
+                    </span>
+
+                    <h3 style={{ fontSize: "18px", margin: "12px 0 6px" }}>
+                      {event.title}
+                    </h3>
+
+                    <p style={{ fontSize: "13px", color: "#94a3b8" }}>
+                      {event.description}
+                    </p>
+
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#cbd5e1",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "6px",
+                        marginTop: "16px",
+                      }}
+                    >
+                      <span>
+                        📍 <strong>Venue:</strong> {event.venue}
+                      </span>
+
+                      <span>
+                        📅 <strong>Date:</strong>{" "}
+                        {event.date
+                          ? new Date(event.date).toLocaleDateString()
+                          : "Not specified"}{" "}
+                        at {event.time || "TBD"}
+                      </span>
+
+                      <span>
+                        <strong>Organizer:</strong>{" "}
+                        {event.organizer?.name || "Not available"}
+                      </span>
+
+                      <span>
+                        <strong>Club:</strong>{" "}
+                        {event.club?.club_name || "Not available"}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        background: "rgba(127, 29, 29, 0.2)",
+                        border: "1px solid rgba(248, 113, 113, 0.25)",
+                        borderRadius: "10px",
+                        padding: "14px",
+                        marginTop: "18px",
+                      }}
+                    >
+                      <h4
+                        style={{
+                          color: "#f87171",
+                          fontSize: "13px",
+                          margin: "0 0 8px 0",
+                        }}
+                      >
+                        Rejection Reason / Feedback
+                      </h4>
+
+                      <p
+                        style={{
+                          color: "#cbd5e1",
+                          fontSize: "13px",
+                          lineHeight: "1.6",
+                          margin: 0,
+                        }}
+                      >
+                        {event.rejectionReason || "No rejection reason provided."}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
       {/* Approval Confirmation Modal */}
       {approvingEvent && (
         <div

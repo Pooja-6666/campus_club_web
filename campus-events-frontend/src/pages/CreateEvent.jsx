@@ -348,8 +348,8 @@ function CreateEvent({ eventToEdit = null, onSuccess }) {
     <div
       style={{
         maxWidth: "900px",
-        margin: "40px auto",
-        padding: "0 20px",
+        margin: "0 auto",
+        padding: "24px 20px 0",
         color: "#f8fafc",
       }}
     >

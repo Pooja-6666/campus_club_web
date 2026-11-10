@@ -2317,7 +2317,7 @@ body,
 .organizer-dashboard-main {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 36px 24px;
+  padding: 0px 24px;
 }
 
 .organizer-welcome {
@@ -2422,7 +2422,7 @@ body,
   }
 
   .organizer-dashboard-main {
-    padding: 24px 16px;
+    padding: 0 24px;
   }
 
   .organizer-section-heading {

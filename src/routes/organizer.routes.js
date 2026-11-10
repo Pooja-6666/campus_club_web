@@ -10,6 +10,8 @@ const {
   parsePosterOcr,
   createOrganizerEvent,
   updateRejectedOrganizerEvent,
+  withdrawPendingOrganizerEvent,
+  withdrawPendingOrganizerEditRequest,
 } = require("../controllers/organizer.controller");
 
 router.use(authenticate);
@@ -25,5 +27,11 @@ router.post("/events", upload.single("poster"), createOrganizerEvent);
 
 // Edit a rejected event and resubmit it for faculty approval.
 router.patch("/events/:id", upload.single("poster"), updateRejectedOrganizerEvent);
+
+// Withdraw a pending event submission.
+router.patch("/events/:id/withdraw", withdrawPendingOrganizerEvent);
+
+// Withdraw a pending edit request.
+router.patch("/events/:id/edit-request/withdraw", withdrawPendingOrganizerEditRequest);
 
 module.exports = router;

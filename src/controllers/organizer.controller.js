@@ -129,9 +129,49 @@ const updateRejectedOrganizerEvent = async (req, res, next) => {
   }
 };
 
+const withdrawPendingOrganizerEvent = async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.id);
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({ error: "Invalid event ID" });
+    }
+
+    await organizerService.withdrawPendingEvent(req.user.id, eventId);
+
+    return res.json({
+      success: true,
+      message: "Event submission withdrawn successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const withdrawPendingOrganizerEditRequest = async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.id);
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({ error: "Invalid event ID" });
+    }
+
+    await organizerService.withdrawPendingEditRequest(req.user.id, eventId);
+
+    return res.json({
+      success: true,
+      message: "Edit request withdrawn successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getOrganizerEvents,
   parsePosterOcr,
   createOrganizerEvent,
   updateRejectedOrganizerEvent,
+  withdrawPendingOrganizerEvent,
+  withdrawPendingOrganizerEditRequest,
 };

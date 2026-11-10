@@ -209,9 +209,105 @@ const updateRejectedEvent = async (organizerId, eventId, body, posterFile) => {
   });
 };
 
+const withdrawPendingEvent = async (organizerId, eventId) => {
+  const event = await prisma.event.findFirst({
+    where: {
+      event_id: eventId,
+      created_by: organizerId,
+    },
+  });
+
+  if (!event) {
+    const error = new Error("Event not found");
+    error.status = 404;
+    throw error;
+  }
+
+  if (event.status !== "PENDING") {
+    const error = new Error("Only pending event submissions can be withdrawn");
+    error.status = 409;
+    throw error;
+  }
+
+  const result = await prisma.event.updateMany({
+    where: {
+      event_id: eventId,
+      created_by: organizerId,
+      status: "PENDING",
+    },
+    data: {
+      status: "WITHDRAWN",
+    },
+  });
+
+  if (result.count === 0) {
+    const error = new Error("Event has already been processed");
+    error.status = 409;
+    throw error;
+  }
+
+  return prisma.event.findUnique({
+    where: { event_id: eventId },
+  });
+};
+
+const withdrawPendingEditRequest = async (organizerId, eventId) => {
+  const event = await prisma.event.findFirst({
+    where: {
+      event_id: eventId,
+      created_by: organizerId,
+    },
+  });
+
+  if (!event) {
+    const error = new Error("Event not found");
+    error.status = 404;
+    throw error;
+  }
+
+  const pendingRequest = await prisma.eventEditRequest.findFirst({
+    where: {
+      event_id: eventId,
+      status: "PENDING",
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  if (!pendingRequest) {
+    const error = new Error("No pending edit request found");
+    error.status = 404;
+    throw error;
+  }
+
+  const result = await prisma.eventEditRequest.updateMany({
+    where: {
+      edit_request_id: pendingRequest.edit_request_id,
+      status: "PENDING",
+    },
+    data: {
+      status: "WITHDRAWN",
+    },
+  });
+
+  if (result.count === 0) {
+    const error = new Error("Edit request has already been processed");
+    error.status = 409;
+    throw error;
+  }
+
+  return prisma.eventEditRequest.findUnique({
+    where: {
+      edit_request_id: pendingRequest.edit_request_id,
+    },
+  });
+};
 
 module.exports = {
   getOrganizerEvents,
   createEvent,
   updateRejectedEvent,
+  withdrawPendingEvent,
+  withdrawPendingEditRequest,
 };

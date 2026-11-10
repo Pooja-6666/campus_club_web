@@ -6,6 +6,8 @@ export default function FacultyDashboard({ user, onLogout }) {
   const [error, setError] = useState("");
 
   const [rejectingEvent, setRejectingEvent] = useState(null);
+  const [approvingEvent, setApprovingEvent] = useState(null);
+  const [submittingApproval, setSubmittingApproval] = useState(false);  
   const [rejectionReason, setRejectionReason] = useState("");
   const [submittingRejection, setSubmittingRejection] = useState(false);
   const [pendingEditRequests, setPendingEditRequests] = useState([]);
@@ -100,6 +102,38 @@ export default function FacultyDashboard({ user, onLogout }) {
     }
   };
 
+  const confirmApproval = async () => {
+    if (!approvingEvent || submittingApproval) return;
+
+    try {
+      setSubmittingApproval(true);
+
+      const res = await fetch(
+        `http://localhost:3000/api/faculty/events/${approvingEvent.event_id}/approve`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to approve event");
+      }
+
+      setApprovingEvent(null);
+      await fetchPendingEvents();
+
+      alert(`"${approvingEvent.title}" approved successfully!`);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmittingApproval(false);
+    }
+  };
   const handleEditRequestApproval = async (requestId) => {
     try {
       const res = await fetch(
@@ -568,10 +602,59 @@ export default function FacultyDashboard({ user, onLogout }) {
                   </span>
                 </div>
               </div>
+              {/* Organizer and Submission Information */}
+              <div
+                style={{
+                  background: "rgba(15, 23, 42, 0.8)",
+                  border: "1px solid rgba(168, 85, 247, 0.2)",
+                  borderRadius: "10px",
+                  padding: "14px",
+                  marginBottom: "18px",
+                  fontSize: "12px",
+                  lineHeight: "1.8",
+                }}
+              >
+                <h4
+                  style={{
+                    color: "#c084fc",
+                    fontSize: "13px",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  Organizer Information
+                </h4>
 
+                <p style={{ margin: 0 }}>
+                  <strong>Organizer:</strong>{" "}
+                  {event.organizer?.name || "Not available"}
+                </p>
+
+                <p style={{ margin: 0 }}>
+                  <strong>Email:</strong>{" "}
+                  {event.organizer?.email || "Not available"}
+                </p>
+
+                <p style={{ margin: 0 }}>
+                  <strong>Club:</strong>{" "}
+                  {event.club?.club_name || "Not available"}
+                </p>
+
+                <p style={{ margin: 0 }}>
+                  <strong>Submitted:</strong>{" "}
+                  {event.createdAt
+                    ? new Date(event.createdAt).toLocaleString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "Not available"}
+                </p>
+              </div>
               <div style={{ display: "flex", gap: "10px" }}>
                 <button
-                  onClick={() => handleAction(event.event_id, "approve")}
+                  onClick={() => setApprovingEvent(event)}
                   style={{
                     flex: 1,
                     padding: "10px",
@@ -606,7 +689,102 @@ export default function FacultyDashboard({ user, onLogout }) {
           </div>
         ))}
       </div>
+      {/* Approval Confirmation Modal */}
+      {approvingEvent && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "450px",
+              background: "#1e293b",
+              border: "1px solid rgba(16,185,129,0.4)",
+              borderRadius: "16px",
+              padding: "28px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+            }}
+          >
+            <h2 style={{ marginTop: 0, fontSize: "22px" }}>
+              Confirm Event Approval
+            </h2>
 
+            <p style={{ color: "#cbd5e1", fontSize: "14px" }}>
+              Are you sure you want to approve this event?
+            </p>
+
+            <div
+              style={{
+                padding: "16px",
+                background: "#0f172a",
+                borderRadius: "10px",
+                margin: "18px 0",
+              }}
+            >
+              <p style={{ margin: 0, fontWeight: "700", fontSize: "17px" }}>
+                {approvingEvent.title}
+              </p>
+              <p style={{ color: "#94a3b8", fontSize: "12px", marginBottom: 0 }}>
+                {approvingEvent.club?.club_name || "Club not specified"}
+              </p>
+            </div>
+
+            <p style={{ color: "#94a3b8", fontSize: "13px" }}>
+              Once approved, this event will become eligible to appear on the
+              student dashboard.
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+                marginTop: "24px",
+              }}
+            >
+              <button
+                onClick={() => setApprovingEvent(null)}
+                disabled={submittingApproval}
+                style={{
+                  padding: "10px 18px",
+                  background: "#334155",
+                  color: "#f8fafc",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmApproval}
+                disabled={submittingApproval}
+                style={{
+                  padding: "10px 18px",
+                  background: submittingApproval ? "#64748b" : "#10b981",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontWeight: "700",
+                  cursor: submittingApproval ? "not-allowed" : "pointer",
+                }}
+              >
+                {submittingApproval ? "Approving..." : "Confirm Approval"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Rejection feedback modal */}
       {rejectingEvent && (
         <div

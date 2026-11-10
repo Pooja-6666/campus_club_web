@@ -1782,6 +1782,7 @@ body,
   position: relative;
   z-index: 1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -1795,21 +1796,6 @@ body,
     rgba(15, 5, 25, 0.98) 60%,
     #0f0519 100%
   );
-}
-
-
-
-
-
-.poster-event-title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  color: #fff8ff;
-  font-size: clamp(14px, 1.4vw, 20px);
-  font-weight: 750;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
 }
 
 .poster-bookmark-button {
@@ -3089,4 +3075,83 @@ body,
   .interest-onboarding-actions {
     margin-top: 15px;
   }
+}
+
+/* Consistent event poster footer */
+.event-poster-bottom {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+/* Event title - left side */
+.poster-event-title {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+
+  color: #fff8ff;
+  font-size: clamp(10px, 1vw, 15px);
+  font-weight: 750;
+  line-height: 1.2;
+
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* Club - middle */
+.poster-club-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 25%;
+
+  color: #e9e1f5;
+  font-size: clamp(10px, 1vw, 15px);
+  text-align: center;
+}
+
+.poster-club-logo {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.poster-club-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.poster-club-text span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poster-club-text small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 9px;
+}
+
+/* Heart and View Details remain together */
+.poster-bookmark-button,
+.poster-details-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }

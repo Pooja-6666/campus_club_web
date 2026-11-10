@@ -93,24 +93,24 @@ function EventCard({
               {event.title}
             </h3>
 
-            {/* 👇 Club Info safely nested inside the card container */}
             {event.club && (
-              <div className="flex items-center gap-2 my-2 p-2 bg-slate-800/40 rounded-lg border border-slate-700/50 w-full">
+              <div className="poster-club-name" title={event.club.club_name}>
                 {event.club.logo_url && (
-                  <img 
-                    src={event.club.logo_url.startsWith("http") ? event.club.logo_url : `http://localhost:3000${event.club.logo_url}`} 
-                    alt={event.club.club_name} 
-                    className="w-7 h-7 rounded-full object-cover border border-purple-500/30"
+                  <img
+                    src={
+                      event.club.logo_url.startsWith("http")
+                        ? event.club.logo_url
+                        : `http://localhost:3000${event.club.logo_url}`
+                    }
+                    alt={event.club.club_name}
+                    className="poster-club-logo"
                   />
                 )}
-                <div className="flex flex-col text-left">
-                  <span className="text-xs font-bold text-purple-400">
-                    {event.club.club_name}
-                  </span>
+
+                <div className="poster-club-text">
+                  <span>{event.club.club_name}</span>
                   {event.club.department && (
-                    <span className="text-[10px] text-slate-400">
-                      {event.club.department}
-                    </span>
+                    <small>{event.club.department}</small>
                   )}
                 </div>
               </div>

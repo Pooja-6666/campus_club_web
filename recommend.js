@@ -54,6 +54,7 @@ async function buildStudentProfile(studentId) {
       rsvps: { include: { event: true } },
       feedback: { include: { event: true } },
       notInterested: true,
+      eventInterests: { include: { event: true } },
     },
   });
 
@@ -183,6 +184,21 @@ async function buildStudentProfile(studentId) {
     }
   });
 
+  // ==============================
+  // 7. EVENT INTEREST SIGNALS
+  // ==============================
+
+  student.eventInterests.forEach((item) => {
+    if (item.status === "INTERESTED") {
+      applyEventSignal(
+        item.event,
+        INTEREST_WEIGHT,
+        item.updatedAt
+      );
+    } else if (item.status === "NOT_INTERESTED") {
+      excludedEventIds.add(item.event_id);
+    }
+  });
   // ==============================
   // 7. NOT INTERESTED
   // ==============================

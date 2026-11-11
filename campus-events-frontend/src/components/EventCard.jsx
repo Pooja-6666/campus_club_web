@@ -1,9 +1,19 @@
 import { useEffect, useState } from "react";
-import { addBookmark, removeBookmark } from "../services/api";
+import {
+  addBookmark,
+  removeBookmark,
+  recordEventView,
+  setEventInterest,
+  removeEventInterest,
+  rsvpEvent,
+  cancelRsvp,
+  getEventInteractionStatus,
+} from "../services/api";
 
 function EventCard({
   item,
   onBookmarkChange,
+  onNotInterested,
   showBookmark = true,
 }) {
   const event = item.event || item;
@@ -32,6 +42,37 @@ function EventCard({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Event interaction state
+  const [interestStatus, setInterestStatus] = useState(null);
+  const [isRsvped, setIsRsvped] = useState(false);
+  const [interactionStatusLoading, setInteractionStatusLoading] = useState(false);
+  const [interactionLoading, setInteractionLoading] = useState(false);
+  const [interactionMessage, setInteractionMessage] = useState("");
+
+  // Open event details and load interaction data
+  const handleOpenDetails = async () => {
+    setDetailsOpen(true);
+    setInteractionMessage("");
+    setInteractionStatusLoading(true);
+
+    try {
+      const [, status] = await Promise.all([
+        recordEventView(event.event_id),
+        getEventInteractionStatus(event.event_id),
+      ]);
+
+      setInterestStatus(status.interest);
+      setIsRsvped(status.isRsvped);
+    } catch (error) {
+      console.error("Error loading event interactions:", error);
+      setInteractionMessage(
+        "Could not load your event interaction status."
+      );
+    } finally {
+      setInteractionStatusLoading(false);
+    }
+  };
 
   useEffect(() => {
     setIsBookmarked(Boolean(item.isBookmarked));
@@ -63,6 +104,60 @@ function EventCard({
       setMessage("Could not update bookmark. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Set or change interest in an event
+  const handleInterest = async (status) => {
+    if (interactionLoading) return;
+
+    setInteractionLoading(true);
+    setInteractionMessage("");
+
+    try {
+      if (interestStatus === status) {
+        await removeEventInterest(event.event_id);
+        setInterestStatus(null);
+        setInteractionMessage("Your response has been removed.");
+      } else {
+        await setEventInterest(event.event_id, status);
+        setInterestStatus(status);
+
+        if (status === "NOT_INTERESTED") {
+          await onNotInterested?.(event.event_id);
+        } else {
+          setInteractionMessage("Marked as Interested!");
+        }
+      }
+    } catch (error) {
+      console.error("Interest update error:", error);
+      setInteractionMessage("Could not update your response. Please try again.");
+    } finally {
+      setInteractionLoading(false);
+    }
+  };
+  // RSVP to an event or cancel an existing RSVP
+  const handleRsvp = async () => {
+    if (interactionLoading) return;
+
+    setInteractionLoading(true);
+    setInteractionMessage("");
+
+    try {
+      if (isRsvped) {
+        await cancelRsvp(event.event_id);
+        setIsRsvped(false);
+        setInteractionMessage("Your RSVP has been cancelled.");
+      } else {
+        await rsvpEvent(event.event_id);
+        setIsRsvped(true);
+        setInteractionMessage("You have successfully RSVP'd!");
+      }
+    } catch (error) {
+      console.error("RSVP error:", error);
+      setInteractionMessage("Could not update your RSVP. Please try again.");
+    } finally {
+      setInteractionLoading(false);
     }
   };
 
@@ -133,11 +228,10 @@ function EventCard({
                 {isBookmarked ? "♥" : "♡"}
               </button>
             )}
-
             <button
               type="button"
               className="poster-details-button"
-              onClick={() => setDetailsOpen(true)}
+              onClick={handleOpenDetails}
             >
               View Details
             </button>
@@ -228,6 +322,57 @@ function EventCard({
                         : "♡ Bookmark Event"}
                   </button>
                 )}
+                {/* Event interest actions */}
+                <div className="event-interest-actions">
+                  <p>Are you interested in this event?</p>
+
+                  <div className="event-interest-buttons">
+                    <button
+                      type="button"
+                      className={`event-interest-button ${
+                        interestStatus === "INTERESTED" ? "selected" : ""
+                      }`}
+                      onClick={() => handleInterest("INTERESTED")}
+                      disabled={interactionLoading || interactionStatusLoading}
+                      aria-pressed={interestStatus === "INTERESTED"}
+                    >
+                      Interested
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`event-interest-button ${
+                        interestStatus === "NOT_INTERESTED" ? "selected" : ""
+                      }`}
+                      onClick={() => handleInterest("NOT_INTERESTED")}
+                      disabled={interactionLoading || interactionStatusLoading}
+                      aria-pressed={interestStatus === "NOT_INTERESTED"}
+                    >
+                      Not Interested
+                    </button>
+                  </div>
+                </div>
+
+                {/* RSVP action */}
+                <button
+                  type="button"
+                  className="poster-modal-rsvp"
+                  onClick={handleRsvp}
+                  disabled={interactionLoading || interactionStatusLoading}
+                >
+                  {interactionLoading
+                    ? "Please wait..."
+                    : isRsvped
+                      ? "Cancel RSVP"
+                      : "RSVP"}
+                </button>
+
+                {interactionMessage && (
+                  <p className="event-interaction-message" role="status">
+                    {interactionMessage}
+                  </p>
+                )}
+
               </div>
 
               <div className="event-modal-poster-container">

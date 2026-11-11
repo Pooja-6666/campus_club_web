@@ -8,16 +8,17 @@ datasource db {
 }
 
 model Student {
-  student_id    Int             @id @default(autoincrement())
-  name          String
-  email         String          @unique
-  password      String
-  interests     String[]        @default([])
-  bookmarks     Bookmark[]
-  views         EventView[]
-  rsvps         RSVP[]
-  feedback      EventFeedback[]
-  notInterested NotInterested[]
+  student_id     Int             @id @default(autoincrement())
+  name           String
+  email          String          @unique
+  password       String
+  interests      String[]        @default([])
+  bookmarks      Bookmark[]
+  views          EventView[]
+  rsvps          RSVP[]
+  feedback       EventFeedback[]
+  notInterested  NotInterested[]
+  eventInterests EventInterest[]
 
   passwordResetOTP PasswordResetOTP?
 }
@@ -29,7 +30,7 @@ model Organizer {
   password String
 
   club_id Int
-  club    Club   @relation(fields: [club_id], references: [club_id])
+  club    Club @relation(fields: [club_id], references: [club_id])
 
   events Event[]
 
@@ -56,14 +57,14 @@ model Admin {
 }
 
 model Club {
-  club_id      Int      @id @default(autoincrement())
-  club_name    String   @unique
-  description  String?
-  
+  club_id     Int     @id @default(autoincrement())
+  club_name   String  @unique
+  description String?
+
   // 👉 NEW fields added safely as optional (?) so existing clubs don't break
-  department   String?  // e.g., "Computer Science & Engineering"
-  faculty_lead String?  // Faculty coordinator name
-  logo_url     String?  // Club logo image path
+  department   String? // e.g., "Computer Science & Engineering"
+  faculty_lead String? // Faculty coordinator name
+  logo_url     String? // Club logo image path
 
   organizers Organizer[]
   events     Event[]
@@ -71,35 +72,36 @@ model Club {
 }
 
 model Event {
-  event_id      Int             @id @default(autoincrement())
-  title         String
-  description   String
-  date          DateTime
-  endDate       DateTime?
-  time          String?
-  venue         String
-  contact_phone String?
+  event_id        Int       @id @default(autoincrement())
+  title           String
+  description     String
+  date            DateTime
+  endDate         DateTime?
+  time            String?
+  venue           String
+  contact_phone   String?
   registrationUrl String?
-  status        String          @default("PENDING")
+  status          String    @default("PENDING")
   rejectionReason String?
-  category      String?
-  tags          String[]        @default([])
-  capacity      Int?
-  posterUrl     String?
-  extractedText String?
-  createdAt     DateTime        @default(now())
+  category        String?
+  tags            String[]  @default([])
+  capacity        Int?
+  posterUrl       String?
+  extractedText   String?
+  createdAt       DateTime  @default(now())
 
   club_id    Int
   club       Club      @relation(fields: [club_id], references: [club_id])
   created_by Int
   organizer  Organizer @relation(fields: [created_by], references: [org_id])
 
-  promotions EventPromotion[]
-  bookmarks  Bookmark[]
-  views      EventView[]
-  rsvps      RSVP[]
-  feedback   EventFeedback[]
-  editRequests EventEditRequest[]
+  promotions     EventPromotion[]
+  bookmarks      Bookmark[]
+  views          EventView[]
+  rsvps          RSVP[]
+  feedback       EventFeedback[]
+  eventInterests EventInterest[]
+  editRequests   EventEditRequest[]
 
   @@index([status])
   @@index([date])
@@ -172,8 +174,28 @@ model NotInterested {
   student Student @relation(fields: [student_id], references: [student_id])
 }
 
+enum EventInterestStatus {
+  INTERESTED
+  NOT_INTERESTED
+}
+
+model EventInterest {
+  id         Int                 @id @default(autoincrement())
+  student_id Int
+  event_id   Int
+  status     EventInterestStatus
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  student Student @relation(fields: [student_id], references: [student_id])
+  event   Event   @relation(fields: [event_id], references: [event_id])
+
+  @@unique([student_id, event_id])
+  @@index([event_id])
+}
+
 model EventPromotion {
-  promo_id   Int    @id @default(autoincrement())
+  promo_id   Int     @id @default(autoincrement())
   media_type String
   media_url  String
   caption    String?
@@ -183,12 +205,12 @@ model EventPromotion {
 }
 
 model PasswordResetOTP {
-  id        Int      @id @default(autoincrement())
-  student_id Int     @unique
-  otpHash   String
-  expiresAt DateTime
-  attempts  Int      @default(0)
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  student_id Int      @unique
+  otpHash    String
+  expiresAt  DateTime
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
 
   student Student @relation(fields: [student_id], references: [student_id], onDelete: Cascade)
 }

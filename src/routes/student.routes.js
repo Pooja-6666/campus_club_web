@@ -33,4 +33,41 @@ router.delete(
   studentController.removeBookmark
 );
 
+// Event interactions
+
+// Record event view
+router.post(
+  "/events/:eventId/view",
+  studentController.recordEventView
+);
+
+// Set Interested / Not Interested
+router.put(
+  "/events/:eventId/interest",
+  studentController.setEventInterest
+);
+
+// Remove interest response
+router.delete(
+  "/events/:eventId/interest",
+  studentController.removeEventInterest
+);
+
+// RSVP to an event
+router.post(
+  "/events/:eventId/rsvp",
+  studentController.rsvpEvent
+);
+
+// Cancel RSVP
+router.delete(
+  "/events/:eventId/rsvp",
+  studentController.cancelRsvp
+);
+
+router.get(
+  "/events/:eventId/interaction-status",
+  studentController.getEventInteractionStatus
+);
+
 module.exports = router;

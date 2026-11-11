@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const recommendationService = require("../services/recommendation.service");
+const studentService = require("../services/student.service");
 
 // Get the logged-in student's profile
 const getProfile = async (req, res, next) => {
@@ -188,6 +189,168 @@ const removeBookmark = async (req, res, next) => {
     next(error);
   }
 };
+// Record when a student views an event
+const recordEventView = async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.eventId);
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({
+        error: "Invalid event ID",
+      });
+    }
+
+    const view = await studentService.recordEventView(
+      req.user.id,
+      eventId
+    );
+
+    res.json({
+      message: "Event view recorded successfully",
+      view,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+// Set or update interest in an event
+const setEventInterest = async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.eventId);
+    const { status } = req.body;
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({
+        error: "Invalid event ID",
+      });
+    }
+
+    if (!["INTERESTED", "NOT_INTERESTED"].includes(status)) {
+      return res.status(400).json({
+        error: "Status must be INTERESTED or NOT_INTERESTED",
+      });
+    }
+
+    const interest = await studentService.setEventInterest(
+      req.user.id,
+      eventId,
+      status
+    );
+
+    res.json({
+      message: "Event interest updated successfully",
+      interest,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Remove interest response from an event
+const removeEventInterest = async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.eventId);
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({
+        error: "Invalid event ID",
+      });
+    }
+
+    const result = await studentService.removeEventInterest(
+      req.user.id,
+      eventId
+    );
+
+    if (result.count === 0) {
+      return res.status(404).json({
+        error: "Interest response not found",
+      });
+    }
+
+    res.json({
+      message: "Event interest removed successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+// RSVP to an event
+const rsvpEvent = async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.eventId);
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({
+        error: "Invalid event ID",
+      });
+    }
+
+    const rsvp = await studentService.rsvpEvent(
+      req.user.id,
+      eventId
+    );
+
+    res.status(201).json({
+      message: "RSVP successful",
+      rsvp,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Cancel an RSVP
+const cancelRsvp = async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.eventId);
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({
+        error: "Invalid event ID",
+      });
+    }
+
+    const result = await studentService.cancelRsvp(
+      req.user.id,
+      eventId
+    );
+
+    if (result.count === 0) {
+      return res.status(404).json({
+        error: "RSVP not found",
+      });
+    }
+
+    res.json({
+      message: "RSVP cancelled successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get the logged-in student's interaction status for an event
+const getEventInteractionStatus = async (req, res, next) => {
+  try {
+    const eventId = Number(req.params.eventId);
+
+    if (!Number.isInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({
+        error: "Invalid event ID",
+      });
+    }
+
+    const status = await studentService.getEventInteractionStatus(
+      req.user.id,
+      eventId
+    );
+
+    res.json(status);
+  } catch (error) {
+    next(error);
+  }
+};
 
 module.exports = {
   getProfile,
@@ -196,4 +359,10 @@ module.exports = {
   getBookmarks,
   addBookmark,
   removeBookmark,
+  recordEventView,
+  setEventInterest,
+  removeEventInterest,
+  rsvpEvent,
+  cancelRsvp,
+  getEventInteractionStatus,
 };

@@ -230,6 +230,16 @@ const filteredEvents = events.filter((item) => {
     }
   };
 
+  const refreshRecommendations = async () => {
+    if (activePage !== "home") return;
+
+    try {
+      const data = await getRecommendedEvents();
+      setEvents(data);
+    } catch (err) {
+      console.error("Error refreshing recommendations:", err);
+    }
+  };
 
   const handleHome = async () => {
     setActivePage("home");
@@ -610,6 +620,7 @@ const filteredEvents = events.filter((item) => {
                           isBookmarked: bookmarkedIds.has(Number(event.event_id)),
                         }}
                         onBookmarkChange={handleBookmarkChange}
+                        onNotInterested={refreshRecommendations}
                       />
                     );
                   })}

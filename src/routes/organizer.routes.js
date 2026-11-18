@@ -7,21 +7,31 @@ const upload = require("../middleware/upload.middleware");
 
 const {
   getOrganizerEvents,
+  parsePosterOcr,
+  createOrganizerEvent,
+  updateRejectedOrganizerEvent,
+  withdrawPendingOrganizerEvent,
+  withdrawPendingOrganizerEditRequest,
 } = require("../controllers/organizer.controller");
 
-router.get(
-  "/events",
-  authenticate,
-  authorize("ORGANIZER"),
-  getOrganizerEvents
-);
-// POST: Parse uploaded poster via OCR
-router.post(
-  "/parse-poster",
-  authenticate,
-  authorize("ORGANIZER"),
-  upload.single("poster"), // Expects file field name "poster"
-  parsePosterOcr
-);
+router.use(authenticate);
+router.use(authorize("ORGANIZER"));
+
+router.get("/events", getOrganizerEvents);
+
+// OCR: receives poster image and returns extracted fields to the frontend.
+router.post("/parse-poster", upload.single("poster"), parsePosterOcr);
+
+// Event creation: receives editable form data and optional poster file.
+router.post("/events", upload.single("poster"), createOrganizerEvent);
+
+// Edit a rejected event and resubmit it for faculty approval.
+router.patch("/events/:id", upload.single("poster"), updateRejectedOrganizerEvent);
+
+// Withdraw a pending event submission.
+router.patch("/events/:id/withdraw", withdrawPendingOrganizerEvent);
+
+// Withdraw a pending edit request.
+router.patch("/events/:id/edit-request/withdraw", withdrawPendingOrganizerEditRequest);
 
 module.exports = router;

@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
 import {
   getRecommendedEvents,
   getBookmarks,
   getAllEvents,
   getProfile,
+  updateStudentInterests,
 } from "../services/api";
+import Chatbot from "../components/Chatbot";
+import { useEffect, useState } from "react";
 import EventCard from "../components/EventCard";
 import {
   House,
@@ -26,7 +28,9 @@ function Home() {
   const [error, setError] = useState("");
   const [profile, setProfile] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-
+  const [interestDraft, setInterestDraft] = useState([]);
+  const [interestSaving, setInterestSaving] = useState(false);
+  const [interestMessage, setInterestMessage] = useState("");
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedDate, setSelectedDate] = useState("");
@@ -90,13 +94,27 @@ const filteredEvents = events.filter((item) => {
   const event = item.event || item;
   const filters = appliedFilters;
 
-  // Search by event title or description
+  // Search by title, description, tags, category, club name, and venue
   const search = filters.searchText.trim().toLowerCase();
+
+  const searchableFields = [
+    event.title,
+    event.description,
+    event.category,
+    event.venue,
+    event.club?.club_name,
+    ...(Array.isArray(event.tags)
+      ? event.tags
+      : typeof event.tags === "string"
+        ? event.tags.split(",")
+        : []),
+  ];
 
   const matchesSearch =
     !search ||
-    (event.title || "").toLowerCase().includes(search) ||
-    (event.description || "").toLowerCase().includes(search);
+    searchableFields.some((field) =>
+      String(field || "").toLowerCase().includes(search)
+    );
 
   // Filter by category
   const matchesCategory =
@@ -164,6 +182,7 @@ const filteredEvents = events.filter((item) => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     window.location.reload();
   };
 
@@ -211,6 +230,16 @@ const filteredEvents = events.filter((item) => {
     }
   };
 
+  const refreshRecommendations = async () => {
+    if (activePage !== "home") return;
+
+    try {
+      const data = await getRecommendedEvents();
+      setEvents(data);
+    } catch (err) {
+      console.error("Error refreshing recommendations:", err);
+    }
+  };
 
   const handleHome = async () => {
     setActivePage("home");
@@ -249,10 +278,15 @@ const filteredEvents = events.filter((item) => {
     setActivePage("profile");
     setLoading(true);
     setError("");
+    setInterestMessage("");
 
     try {
       const data = await getProfile();
+
       setProfile(data);
+      setInterestDraft(
+        Array.isArray(data.interests) ? data.interests : []
+      );
     } catch (err) {
       console.error(err);
       setError("Unable to load profile");
@@ -261,6 +295,46 @@ const filteredEvents = events.filter((item) => {
     }
   };
 
+  const availableInterests = [
+    "Technology",
+    "AI",
+    "Coding",
+    "Competitions",
+    "Cultural",
+    "Music",
+    "Dance",
+    "Sports",
+    "Astronomy",
+    "Entrepreneurship",
+    "Workshop",
+    "Social",
+  ];
+
+  const handleInterestToggle = (interest) => {
+    setInterestDraft((previous) =>
+      previous.includes(interest)
+        ? previous.filter((item) => item !== interest)
+        : [...previous, interest]
+    );
+  };
+
+  const handleSaveInterests = async () => {
+    setInterestSaving(true);
+    setInterestMessage("");
+
+    try {
+      const result = await updateStudentInterests(interestDraft);
+
+      setProfile(result.profile);
+      setInterestDraft(result.profile.interests || []);
+      setInterestMessage("Interests updated successfully!");
+    } catch (err) {
+      console.error(err);
+      setInterestMessage("Failed to update interests. Please try again.");
+    } finally {
+      setInterestSaving(false);
+    }
+  };
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -546,6 +620,7 @@ const filteredEvents = events.filter((item) => {
                           isBookmarked: bookmarkedIds.has(Number(event.event_id)),
                         }}
                         onBookmarkChange={handleBookmarkChange}
+                        onNotInterested={refreshRecommendations}
                       />
                     );
                   })}
@@ -604,15 +679,35 @@ const filteredEvents = events.filter((item) => {
                     <span>Email Address</span>
                     <p>{profile.email}</p>
                   </div>
-
                   <div className="profile-detail">
                     <span>Interests</span>
-                    <p>
-                      {Array.isArray(profile.interests) &&
-                      profile.interests.length > 0
-                        ? profile.interests.join(", ")
-                        : "No interests added yet"}
-                    </p>
+
+                    <p>Select your interests to personalize recommendations:</p>
+
+                    <div className="interest-options">
+                      {availableInterests.map((interest) => (
+                        <label key={interest} className="interest-option">
+                          <input
+                            type="checkbox"
+                            checked={interestDraft.includes(interest)}
+                            onChange={() => handleInterestToggle(interest)}
+                          />
+                          {interest}
+                        </label>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveInterests}
+                      disabled={interestSaving}
+                    >
+                      {interestSaving ? "Saving..." : "Save Interests"}
+                    </button>
+
+                    {interestMessage && (
+                      <p role="status">{interestMessage}</p>
+                    )}
                   </div>
                 </div>
               </section>
@@ -621,6 +716,8 @@ const filteredEvents = events.filter((item) => {
           </main>
         </div>
       </div>
+      {/* Chatbot */}
+      <Chatbot />
     </div>
   );
 }

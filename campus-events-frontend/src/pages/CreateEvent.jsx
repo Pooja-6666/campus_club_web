@@ -1,25 +1,46 @@
+import { useState, useRef } from "react";
 
-import { useState } from "react";
+const toDateInput = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+};
 
-function CreateEvent() {
+function CreateEvent({ eventToEdit = null, onSuccess }) {
+  const isEditing = Boolean(eventToEdit);
+  const eventStatus = String(eventToEdit?.status || "").toUpperCase();
+
+  const isApprovedEdit = isEditing && eventStatus === "APPROVED";
+  const isRejectedEdit = isEditing && eventStatus === "REJECTED";
   const [poster, setPoster] = useState(null);
-  const [preview, setPreview] = useState("");
+  const [preview, setPreview] = useState(
+    eventToEdit?.posterUrl
+      ? `http://localhost:3000${eventToEdit.posterUrl}`
+      : ""
+  );
+  const ocrController = useRef(null);
   const [loadingOcr, setLoadingOcr] = useState(false);
   const [extractedText, setExtractedText] = useState("");
+  
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    date: "",
-    time: "",
-    venue: "",
-    contact_phone: "",
-    club_id: "1",
-    category: "Technology",
-    tags: "AI, Hackathon",
-    capacity: "100",
-    endDate: "",
-  });
+  const [formData, setFormData] = useState(() => ({
+    title: eventToEdit?.title || "",
+    description: eventToEdit?.description || "",
+    date: toDateInput(eventToEdit?.date),
+    time: eventToEdit?.time || "",
+    venue: eventToEdit?.venue || "",
+    contact_phone: eventToEdit?.contact_phone || "",
+    registrationUrl: eventToEdit?.registrationUrl || "",
+    club_id: String(eventToEdit?.club_id || "1"),
+    category: eventToEdit?.category || "Technology",
+    tags: Array.isArray(eventToEdit?.tags) ? eventToEdit.tags.join(", ") : (eventToEdit?.tags || "AI, Hackathon"),
+    capacity: eventToEdit?.capacity != null ? String(eventToEdit.capacity) : "100",
+    endDate: toDateInput(eventToEdit?.endDate),
+  }));
+
+  // Keep the existing poster visible while editing; uploading a new file replaces it.
+  const [existingPosterUrl] = useState(eventToEdit?.posterUrl || "");
+  const [posterChanged, setPosterChanged] = useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -44,6 +65,11 @@ function CreateEvent() {
     // Already in HTML date format
     if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
       return text;
+    }
+    // Convert DD-MM-YYYY to YYYY-MM-DD
+    if (/^\d{2}-\d{2}-\d{4}$/.test(text)) {
+      const [day, month, year] = text.split("-");
+      return `${year}-${month}-${day}`;
     }
 
     // Remove ordinal suffixes: 23rd -> 23
@@ -100,10 +126,12 @@ function CreateEvent() {
     setError("");
     setMessage("");
     setPoster(file);
+    setPosterChanged(true);
 
     setPreview(URL.createObjectURL(file));
 
     try {
+      ocrController.current = new AbortController();
       setLoadingOcr(true);
 
       const token = localStorage.getItem("token");
@@ -112,13 +140,14 @@ function CreateEvent() {
       uploadData.append("poster", file);
 
       const response = await fetch(
-        "http://localhost:3000/organizer/parse-poster",
+        "http://localhost:3000/api/organizer/parse-poster",
         {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
           },
           body: uploadData,
+          signal: ocrController.current.signal,
         }
       );
 
@@ -161,12 +190,16 @@ function CreateEvent() {
       );
 
     } catch (err) {
+      if (err.name === "AbortError") {
+        setExtractedText("Poster analysis stopped. You can enter details manually.");
+        return;
+      }
+
       console.error("OCR API error:", err);
 
       setError(
         err.message || "Failed to extract poster details."
       );
-
     } finally {
       setLoadingOcr(false);
     }
@@ -204,6 +237,22 @@ function CreateEvent() {
       return;
     }
 
+    // Validate registration URL if provided
+    if (formData.registrationUrl.trim()) {
+      try {
+        const url = new URL(formData.registrationUrl.trim());
+
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+          throw new Error("Invalid protocol");
+        }
+      } catch {
+        setError(
+          "Please enter a valid registration URL starting with https:// or http://"
+        );
+        return;
+      }
+    }
+
     try {
       setLoading(true);
 
@@ -213,18 +262,27 @@ function CreateEvent() {
 
       Object.keys(formData).forEach((key) => {
         if (formData[key] !== "") {
-          data.append(key, formData[key]);
+          if (key === "date" || key === "endDate") {
+            data.append(key, convertToDateInput(formData[key]));
+          } else {
+            data.append(key, formData[key]);
+          }
         }
       });
 
       if (poster) {
         data.append("poster", poster);
       }
+      if (isEditing && posterChanged && !poster) {
+        data.append("removePoster", "true");
+      }
 
-      const response = await fetch(
-        "http://localhost:3000/events",
-        {
-          method: "POST",
+      const endpoint = isEditing
+        ? `http://localhost:3000/api/organizer/events/${eventToEdit.event_id}`
+        : "http://localhost:3000/api/organizer/events";
+
+      const response = await fetch(endpoint, {
+          method: isEditing ? "PATCH" : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -240,9 +298,20 @@ function CreateEvent() {
         );
       }
 
-      setMessage(
-        "✨ Event submitted successfully! Pending faculty approval."
-      );
+      const successMessage = isApprovedEdit
+        ? "Changes submitted successfully! Your published event will remain unchanged until faculty approves the request."
+        : isRejectedEdit
+        ? "Event updated and resubmitted successfully! Pending faculty approval."
+        : isEditing
+        ? "Event updated successfully."
+        : "✨ Event submitted successfully! Pending faculty approval.";
+
+      alert(successMessage);
+
+      if (onSuccess) {
+        // Return to organizer dashboard after successful submission.
+        onSuccess();
+      }
 
       setFormData({
         title: "",
@@ -251,6 +320,7 @@ function CreateEvent() {
         time: "",
         venue: "",
         contact_phone: "",
+        registrationUrl: "",
         club_id: "1",
         category: "",
         tags: "",
@@ -278,8 +348,8 @@ function CreateEvent() {
     <div
       style={{
         maxWidth: "900px",
-        margin: "40px auto",
-        padding: "0 20px",
+        margin: "0 auto",
+        padding: "24px 20px 0",
         color: "#f8fafc",
       }}
     >
@@ -312,11 +382,17 @@ function CreateEvent() {
             WebkitTextFillColor: "transparent",
           }}
         >
-          Create Campus Event
+          {isEditing ? "Edit Campus Event" : "Create Campus Event"}
         </h1>
 
         <p style={{ color: "#94a3b8", fontSize: "15px" }}>
-          Upload an event poster to instantly extract details with AI OCR ingestion.
+          {isApprovedEdit
+            ? "Propose changes to your published event. Faculty approval is required before changes become visible."
+            : isRejectedEdit
+            ? "Update the rejected event details and resubmit it for approval."
+            : isEditing
+            ? "Update your pending event details."
+            : "Upload an event poster to instantly extract details with AI OCR ingestion."}
         </p>
       </div>
 
@@ -373,7 +449,8 @@ function CreateEvent() {
               />
 
               <div style={{ flex: 1 }}>
-                {loadingOcr ? (
+              {loadingOcr ? (
+                <div>
                   <p
                     style={{
                       color: "#a855f7",
@@ -382,7 +459,31 @@ function CreateEvent() {
                   >
                     🤖 Analyzing poster with AI OCR...
                   </p>
-                ) : (
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      ocrController.current?.abort();
+                      setLoadingOcr(false);
+                      setExtractedText(
+                        "Poster analysis stopped. You can enter details manually."
+                      );
+                    }}
+                    style={{
+                      marginTop: "10px",
+                      background: "rgba(239, 68, 68, 0.1)",
+                      color: "#ef4444",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                      padding: "8px 14px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      fontWeight: "600",
+                    }}
+                  >
+                    ✕ Stop Poster Analysis
+                  </button>
+                </div>
+              ) : (
                   <p
                     style={{
                       color: "#22c55e",
@@ -397,19 +498,10 @@ function CreateEvent() {
                   type="button"
                   onClick={() => {
                     setPoster(null);
+                    setPosterChanged(true);
                     setPreview("");
                     setExtractedText("");
                     setError("");
-
-                    setFormData((prev) => ({
-                      ...prev,
-                      title: "",
-                      description: "",
-                      date: "",
-                      time: "",
-                      venue: "",
-                      contact_phone: "",
-                    }));
                   }}
                   style={{
                     marginTop: "12px",
@@ -652,6 +744,35 @@ function CreateEvent() {
                 style={inputStyle}
               />
             </div>
+            {/* Registration Link */}
+
+            <div
+              style={{ gridColumn: "span 2" }}
+              className="form-group"
+            >
+              <label style={labelStyle}>
+                Registration Link (Optional)
+              </label>
+
+              <input
+                type="url"
+                name="registrationUrl"
+                value={formData.registrationUrl}
+                onChange={handleChange}
+                placeholder="https://forms.google.com/..."
+                style={inputStyle}
+              />
+
+              <small
+                style={{
+                  color: "#94a3b8",
+                  display: "block",
+                  marginTop: "6px",
+                }}
+              >
+                Add a Google Form or external event registration page.
+              </small>
+            </div>
 
             {/* Category */}
 
@@ -778,6 +899,12 @@ function CreateEvent() {
             ? "Submitting Event..."
             : loadingOcr
             ? "Extracting Event Details..."
+            : isApprovedEdit
+            ? "Submit Changes for Faculty Approval →"
+            : isRejectedEdit
+            ? "Update & Resubmit for Approval →"
+            : isEditing
+            ? "Update Event →"
             : "Submit Event for Approval →"}
         </button>
 

@@ -6,8 +6,13 @@ const authorize = require("../middleware/role.middleware");
 
 const {
   getPendingEvents,
+  getApprovedEvents,
+  getRejectedEvents,
   approveEvent,
   rejectEvent,
+  getPendingEditRequests,
+  approveEditRequest,
+  rejectEditRequest,
 } = require("../controllers/faculty.controller");
 
 router.get(
@@ -15,6 +20,20 @@ router.get(
   authenticate,
   authorize("FACULTY"),
   getPendingEvents
+);
+
+router.get(
+  "/events/approved",
+  authenticate,
+  authorize("FACULTY"),
+  getApprovedEvents
+);
+
+router.get(
+  "/events/rejected",
+  authenticate,
+  authorize("FACULTY"),
+  getRejectedEvents
 );
 
 router.put(
@@ -29,6 +48,30 @@ router.put(
   authenticate,
   authorize("FACULTY"),
   rejectEvent
+);
+
+// View edit requests for already-approved events
+router.get(
+  "/event-edit-requests/pending",
+  authenticate,
+  authorize("FACULTY"),
+  getPendingEditRequests
+);
+
+// Approve proposed changes to a published event
+router.put(
+  "/event-edit-requests/:id/approve",
+  authenticate,
+  authorize("FACULTY"),
+  approveEditRequest
+);
+
+// Reject proposed changes to a published event
+router.put(
+  "/event-edit-requests/:id/reject",
+  authenticate,
+  authorize("FACULTY"),
+  rejectEditRequest
 );
 
 module.exports = router;

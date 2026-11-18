@@ -1,14 +1,9 @@
-
 import pickle
 from pathlib import Path
 
 import faiss
 from sentence_transformers import SentenceTransformer
 
-
-# --------------------------------------------------
-# CONFIGURATION
-# --------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -26,29 +21,52 @@ TOP_K = 3
 # LOAD VECTORSTORE
 # --------------------------------------------------
 
-print("Loading FAISS index...")
-
-index = faiss.read_index(str(INDEX_FILE))
-
-with open(METADATA_FILE, "rb") as file:
-    metadata = pickle.load(file)
-
-documents = metadata["documents"]
-events = metadata["events"]
-
-model = SentenceTransformer(MODEL_NAME)
-
-print("Vectorstore loaded successfully!")
-print("Available events:", len(events))
+index = None
+documents = []
+events = []
+model = None
 
 
-# --------------------------------------------------
-# SEARCH EVENTS
-# --------------------------------------------------
+def load_vectorstore():
+    """
+    Load FAISS index, metadata and embedding model.
+
+    Returns False if the vectorstore has not been
+    created yet.
+    """
+
+    global index, documents, events, model
+
+    if not INDEX_FILE.exists() or not METADATA_FILE.exists():
+        return False
+
+    print("Loading FAISS index...")
+
+    index = faiss.read_index(str(INDEX_FILE))
+
+    with open(METADATA_FILE, "rb") as file:
+        metadata = pickle.load(file)
+
+    documents = metadata["documents"]
+    events = metadata["events"]
+
+    print("Loading embedding model...")
+
+    model = SentenceTransformer(MODEL_NAME)
+
+    print("Vectorstore loaded successfully!")
+    print("Available events:", len(events))
+
+    return True
+
 
 def search_events(query, top_k=TOP_K):
 
     if not query.strip():
+        return []
+
+    # Vectorstore isn't ready yet.
+    if index is None or model is None:
         return []
 
     query_embedding = model.encode(
@@ -81,31 +99,56 @@ def search_events(query, top_k=TOP_K):
 
 
 # --------------------------------------------------
-# TEST
+# LOAD VECTORSTORE IF AVAILABLE
+# --------------------------------------------------
+
+load_vectorstore()
+
+
+# --------------------------------------------------
+# TEST SEARCH
 # --------------------------------------------------
 
 if __name__ == "__main__":
 
-    print("\n========== EVENT SEARCH ==========")
+    if index is None:
 
-    while True:
+        print("\nVectorstore is not available yet.")
+        print("Add the approved OCR event dataset and build it first.")
 
-        query = input("\nAsk about an event (or type exit): ")
+    else:
 
-        if query.lower().strip() == "exit":
-            break
+        print("\n========== EVENT SEARCH ==========")
 
-        results = search_events(query)
+        while True:
 
-        if not results:
-            print("No matching events found.")
-            continue
+            query = input(
+                "\nAsk about an event (or type exit): "
+            )
 
-        for result in results:
+            if query.lower().strip() == "exit":
+                break
 
-            event = result["event"]
+            results = search_events(query)
 
-            print("\nEvent:", event.get("event_name"))
-            print("Organizer:", event.get("organizer"))
-            print("Similarity score:", round(result["score"], 3))
-            print("Poster:", event.get("source_file"))
+            if not results:
+                print("No matching events found.")
+                continue
+
+            for result in results:
+
+                event = result["event"]
+
+                print("\nEvent:", event.get("event_name"))
+                print(
+                    "Organizer:",
+                    event.get("organizer")
+                )
+                print(
+                    "Similarity score:",
+                    round(result["score"], 3)
+                )
+                print(
+                    "Poster:",
+                    event.get("source_file")
+                )

@@ -1,10 +1,10 @@
-
-import json
 import pickle
 from pathlib import Path
 
 import faiss
 from sentence_transformers import SentenceTransformer
+
+from app.ingestion.ocr_to_rag import prepare_rag_documents
 
 
 # --------------------------------------------------
@@ -13,7 +13,14 @@ from sentence_transformers import SentenceTransformer
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-DATA_FILE = PROJECT_ROOT / "data" / "processed" / "events.json"
+# This will eventually be replaced/updated with
+# your friend's approved OCR output file.
+OCR_DATA_FILE = (
+    PROJECT_ROOT
+    / "data"
+    / "processed"
+    / "ocr_events.json"
+)
 
 VECTORSTORE_DIR = PROJECT_ROOT / "vectorstore"
 
@@ -24,53 +31,23 @@ MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 
 # --------------------------------------------------
-# LOAD EVENT DATA
+# LOAD OCR EVENT DATA
 # --------------------------------------------------
 
-def load_events():
+def load_events_and_documents():
 
-    with open(DATA_FILE, "r", encoding="utf-8") as file:
-        events = json.load(file)
+    print("\nLoading OCR event data...")
 
-    # Ignore failed extractions
-    events = [
-        event for event in events
-        if event.get("extraction_method") != "failed"
-        and event.get("event_name")
-    ]
+    events, documents = prepare_rag_documents(OCR_DATA_FILE)
 
     if not events:
-        raise ValueError("No valid event records found.")
+        raise ValueError(
+            "No valid OCR event records found."
+        )
 
-    return events
+    print("Valid events:", len(events))
 
-
-# --------------------------------------------------
-# CONVERT EVENTS INTO TEXT
-# --------------------------------------------------
-
-def create_event_documents(events):
-
-    documents = []
-
-    for event in events:
-
-        document = f"""
-        Event Name: {event.get('event_name') or 'Not available'}
-        Organizer: {event.get('organizer') or 'Not available'}
-        Festival: {event.get('festival') or 'Not available'}
-        Category: {event.get('category') or 'Not available'}
-        Date: {event.get('date') or 'Not available'}
-        Time: {event.get('time') or 'Not available'}
-        Venue: {event.get('venue') or 'Not available'}
-        Registration: {event.get('registration_details') or 'Not available'}
-        Contact: {event.get('contact_details') or 'Not available'}
-        Source Poster: {event.get('source_file') or 'Not available'}
-        """
-
-        documents.append(document.strip())
-
-    return documents
+    return events, documents
 
 
 # --------------------------------------------------
@@ -79,13 +56,9 @@ def create_event_documents(events):
 
 def build_vectorstore():
 
-    print("\nLoading event dataset...")
+    print("\n========== BUILDING RAG VECTORSTORE ==========")
 
-    events = load_events()
-
-    print("Valid events:", len(events))
-
-    documents = create_event_documents(events)
+    events, documents = load_events_and_documents()
 
     print("\nLoading embedding model...")
 
@@ -107,14 +80,24 @@ def build_vectorstore():
     # Cosine similarity through normalized vectors
     index = faiss.IndexFlatIP(dimension)
 
-    index.add(embeddings.astype("float32"))
+    index.add(
+        embeddings.astype("float32")
+    )
 
-    VECTORSTORE_DIR.mkdir(parents=True, exist_ok=True)
+    VECTORSTORE_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
     print("\nSaving FAISS index...")
 
-    faiss.write_index(index, str(INDEX_FILE))
+    faiss.write_index(
+        index,
+        str(INDEX_FILE)
+    )
 
+    # Store both the original normalized
+    # event data and the text documents.
     with open(METADATA_FILE, "wb") as file:
         pickle.dump(
             {
